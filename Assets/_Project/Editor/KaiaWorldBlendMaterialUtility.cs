@@ -110,7 +110,8 @@ namespace TacticalEcho.EditorTools
             }
 
             Texture baseTexture = GetFirstTexture(source, "_BaseMap", "_MainTex");
-            Color baseColor = GetFirstColor(source, Color.white, "_BaseColor", "_Color");
+            Color sourceBaseColor = GetFirstColor(source, Color.white, "_BaseColor", "_Color");
+            Color baseColor = BuildEnvironmentBaseColor(source.name, sourceBaseColor);
 
             if (baseTexture != null)
             {
@@ -126,23 +127,21 @@ namespace TacticalEcho.EditorTools
             target.SetFloat("_UseAlphaClipping", alphaClip ? 1f : 0f);
             target.SetFloat("_Cutoff", alphaClip ? ReadCutoff(source) : 0.01f);
 
-            // Softer toon response so the VRoid character receives the same scene lighting
-            // without looking like a flat anime cutout inside the PBR Viking environment.
-            target.SetColor("_IndirectLightConstColor", new Color(0.42f, 0.42f, 0.42f, 1f));
-            target.SetFloat("_IndirectLightMultiplier", 0.32f);
-            target.SetFloat("_DirectLightMultiplier", 0.9f);
-            target.SetFloat("_CelShadeMidPoint", 0.08f);
-            target.SetFloat("_CelShadeSoftness", 0.62f);
-            target.SetFloat("_ReceiveShadowMappingAmount", 0.9f);
+            // Viking Village has a strong sun plus several warm point lights/torches.
+            // Keep Kaia responsive to those lights but prevent additive URP lights from
+            // blowing white VRoid textures out to pure white.
+            target.SetColor("_IndirectLightConstColor", new Color(0.12f, 0.12f, 0.12f, 1f));
+            target.SetFloat("_IndirectLightMultiplier", 0.08f);
+            target.SetFloat("_DirectLightMultiplier", 0.42f);
+            target.SetFloat("_CelShadeMidPoint", 0.12f);
+            target.SetFloat("_CelShadeSoftness", 0.35f);
+            target.SetFloat("_ReceiveShadowMappingAmount", 1f);
 
-            // No anime outline for Tactical Echo. This is the biggest visual change that
-            // helps Kaia sit inside the semi-realistic Viking Village art direction.
             target.SetFloat("_OutlineWidth", 0f);
             target.SetColor("_OutlineColor", new Color(0.16f, 0.16f, 0.16f, 1f));
             target.SetFloat("_UseEmission", 0f);
 
-            // Kaia hair/clothes frequently use double-sided cards. Keep culling disabled
-            // so those meshes do not lose backfaces after the material conversion.
+            // VRoid hair and clothing commonly use double-sided cards.
             target.SetFloat("_Cull", 0f);
 
             EditorUtility.SetDirty(target);
@@ -267,14 +266,41 @@ namespace TacticalEcho.EditorTools
             return fallback;
         }
 
+        private static Color BuildEnvironmentBaseColor(string materialName, Color sourceColor)
+        {
+            string name = materialName.ToLowerInvariant();
+            float multiplier;
+
+            if (name.Contains("hair"))
+            {
+                multiplier = 0.72f;
+            }
+            else if (name.Contains("body") || name.Contains("skin") || name.Contains("face"))
+            {
+                multiplier = 0.86f;
+            }
+            else if (name.Contains("eye"))
+            {
+                multiplier = 0.82f;
+            }
+            else
+            {
+                multiplier = 0.78f;
+            }
+
+            return new Color(
+                Mathf.Clamp01(sourceColor.r * multiplier),
+                Mathf.Clamp01(sourceColor.g * multiplier),
+                Mathf.Clamp01(sourceColor.b * multiplier),
+                sourceColor.a);
+        }
+
         private static bool ShouldUseAlphaClipping(Material source)
         {
             string name = source.name.ToLowerInvariant();
 
             if (name.Contains("eyehighlight"))
             {
-                // Eye highlights are usually transparent overlays. Keeping them out of the
-                // cutout conversion avoids harsh square/blocked highlights.
                 return false;
             }
 
@@ -300,10 +326,9 @@ namespace TacticalEcho.EditorTools
 
         private static Color BuildShadeColor(Color baseColor)
         {
-            // Preserve hue but darken/desaturate just enough to fit the environment.
             Color.RGBToHSV(baseColor, out float h, out float s, out float v);
             s *= 0.82f;
-            v *= 0.62f;
+            v *= 0.58f;
             Color shade = Color.HSVToRGB(h, s, v);
             shade.a = baseColor.a;
             return shade;
