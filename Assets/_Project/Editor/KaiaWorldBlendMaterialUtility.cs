@@ -127,15 +127,14 @@ namespace TacticalEcho.EditorTools
             target.SetFloat("_UseAlphaClipping", alphaClip ? 1f : 0f);
             target.SetFloat("_Cutoff", alphaClip ? ReadCutoff(source) : 0.01f);
 
-            // Viking Village has a strong sun plus several warm point lights/torches.
-            // Keep Kaia responsive to those lights but prevent additive URP lights from
-            // blowing white VRoid textures out to pure white.
-            target.SetColor("_IndirectLightConstColor", new Color(0.12f, 0.12f, 0.12f, 1f));
-            target.SetFloat("_IndirectLightMultiplier", 0.08f);
-            target.SetFloat("_DirectLightMultiplier", 0.42f);
-            target.SetFloat("_CelShadeMidPoint", 0.12f);
-            target.SetFloat("_CelShadeSoftness", 0.35f);
-            target.SetFloat("_ReceiveShadowMappingAmount", 1f);
+            // Lift ambient/indirect light enough to keep Kaia readable in deep shade,
+            // while keeping direct light restrained so sun and torches do not blow out white textures.
+            target.SetColor("_IndirectLightConstColor", new Color(0.22f, 0.22f, 0.22f, 1f));
+            target.SetFloat("_IndirectLightMultiplier", 0.16f);
+            target.SetFloat("_DirectLightMultiplier", 0.48f);
+            target.SetFloat("_CelShadeMidPoint", 0.06f);
+            target.SetFloat("_CelShadeSoftness", 0.50f);
+            target.SetFloat("_ReceiveShadowMappingAmount", 0.80f);
 
             target.SetFloat("_OutlineWidth", 0f);
             target.SetColor("_OutlineColor", new Color(0.16f, 0.16f, 0.16f, 1f));
@@ -273,19 +272,19 @@ namespace TacticalEcho.EditorTools
 
             if (name.Contains("hair"))
             {
-                multiplier = 0.72f;
+                multiplier = 0.78f;
             }
             else if (name.Contains("body") || name.Contains("skin") || name.Contains("face"))
             {
-                multiplier = 0.86f;
+                multiplier = 0.90f;
             }
             else if (name.Contains("eye"))
             {
-                multiplier = 0.82f;
+                multiplier = 0.84f;
             }
             else
             {
-                multiplier = 0.78f;
+                multiplier = 0.82f;
             }
 
             return new Color(
@@ -328,7 +327,7 @@ namespace TacticalEcho.EditorTools
         {
             Color.RGBToHSV(baseColor, out float h, out float s, out float v);
             s *= 0.82f;
-            v *= 0.58f;
+            v *= 0.62f;
             Color shade = Color.HSVToRGB(h, s, v);
             shade.a = baseColor.a;
             return shade;
