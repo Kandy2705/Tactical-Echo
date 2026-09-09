@@ -16,8 +16,9 @@ namespace TacticalEcho.CameraSystem
         [SerializeField] private PlayerInputReader input;
 
         [Header("Offsets")]
-        [SerializeField] private Vector3 exploreOffset = new(0.6f, 1.7f, -3.5f);
-        [SerializeField] private Vector3 aimOffset = new(0.8f, 1.6f, -2f);
+        [Tooltip("Offset is relative to CameraTarget. CameraTarget already sits around the upper body/head, so Y should stay small.")]
+        [SerializeField] private Vector3 exploreOffset = new(0.65f, 0.15f, -3.6f);
+        [SerializeField] private Vector3 aimOffset = new(0.8f, 0.08f, -2.2f);
 
         [Header("Look")]
         [SerializeField, Min(0.01f)] private float mouseSensitivity = 0.08f;
