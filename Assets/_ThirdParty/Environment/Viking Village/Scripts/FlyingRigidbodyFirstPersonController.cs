@@ -32,7 +32,7 @@ public class FlyingRigidbodyFirstPersonController : MonoBehaviour {
 
 			if (flying)
 			{
-				rigidbody.drag = flyingDrag;
+				rigidbody.linearDamping = flyingDrag;
 			}
 		}
 		 
