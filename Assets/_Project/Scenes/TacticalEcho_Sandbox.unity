@@ -19322,14 +19322,13 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 506865534}
-  - component: {fileID: 506865535}
   m_Layer: 0
   m_Name: Cameras
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &506865534
 Transform:
   m_ObjectHideFlags: 0
@@ -19344,24 +19343,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 745750067}
-  - {fileID: 510798549}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &506865535
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 506865533}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0bd0c4858c802c4b87c9cf983f05fa1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  toggleKey: 99
-  manualController: {fileID: 1763871027}
-  automaticController: {fileID: 510798548}
 --- !u!1001 &507034769
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -39052,11 +39035,11 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 506865534}
+    m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 156470, guid: 22c8db18fdbed734a8709dd4ec787d0e, type: 3}
       propertyPath: m_Name
-      value: CameraLoop
+      value: Main Camera
       objectReference: {fileID: 0}
     - target: {fileID: 156470, guid: 22c8db18fdbed734a8709dd4ec787d0e, type: 3}
       propertyPath: m_IsActive
@@ -39093,6 +39076,10 @@ PrefabInstance:
     - target: {fileID: 403976, guid: 22c8db18fdbed734a8709dd4ec787d0e, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0.0035719515
+      objectReference: {fileID: 0}
+    - target: {fileID: 9507824, guid: 22c8db18fdbed734a8709dd4ec787d0e, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 11413328, guid: 22c8db18fdbed734a8709dd4ec787d0e, type: 3}
       propertyPath: m_Enabled

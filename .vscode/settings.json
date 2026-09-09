@@ -67,5 +67,8 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "Tactical Echo.slnx"
+    "dotnet.defaultSolution": "Tactical Echo.slnx",
+    "conventionalCommits.scopes": [
+        "camera"
+    ]
 }
