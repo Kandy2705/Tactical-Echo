@@ -1,3 +1,4 @@
+using TacticalEcho.AnimationSystem.Runtime;
 using TacticalEcho.CameraSystem;
 using TacticalEcho.Combat.Weapons;
 using UnityEngine;
@@ -13,6 +14,7 @@ namespace TacticalEcho.Character.Player
         [SerializeField] private WeaponController weapon;
         [SerializeField] private Transform cameraOrientation;
         [SerializeField] private Transform aimOrigin;
+        [SerializeField] private PlayerAnimationController animationController;
 
         [Header("Movement")]
         [SerializeField, Min(0f)] private float walkSpeed = 4.5f;
@@ -23,6 +25,7 @@ namespace TacticalEcho.Character.Player
 
         private CharacterController characterController;
         private float verticalVelocity;
+        private Vector2 currentMoveInput;
 
         public Vector3 PlanarVelocity { get; private set; }
         public bool IsGrounded => characterController != null && characterController.isGrounded;
@@ -66,16 +69,35 @@ namespace TacticalEcho.Character.Player
             UpdateMovement();
             UpdateRotation();
             UpdateCameraMode();
+            UpdateAnimation();
+        }
+
+        public void ConfigureCoreReferences(
+            PlayerInputReader inputReader,
+            WeaponController weaponController,
+            Transform newAimOrigin,
+            PlayerAnimationController newAnimationController)
+        {
+            input = inputReader;
+            weapon = weaponController;
+            aimOrigin = newAimOrigin;
+            animationController = newAnimationController;
+        }
+
+        public void ConfigureCamera(PlayerCameraController cameraController, Transform orientation)
+        {
+            playerCamera = cameraController;
+            cameraOrientation = orientation;
         }
 
         private void UpdateMovement()
         {
-            Vector2 moveInput = Vector2.ClampMagnitude(input.Move, 1f);
+            currentMoveInput = Vector2.ClampMagnitude(input.Move, 1f);
             Transform orientation = cameraOrientation != null ? cameraOrientation : transform;
 
             Vector3 forward = Vector3.ProjectOnPlane(orientation.forward, Vector3.up).normalized;
             Vector3 right = Vector3.ProjectOnPlane(orientation.right, Vector3.up).normalized;
-            Vector3 desiredDirection = forward * moveInput.y + right * moveInput.x;
+            Vector3 desiredDirection = forward * currentMoveInput.y + right * currentMoveInput.x;
 
             if (desiredDirection.sqrMagnitude > 1f)
             {
@@ -135,6 +157,20 @@ namespace TacticalEcho.Character.Player
             playerCamera.SetMode(IsAiming ? CameraMode.Aim : CameraMode.Explore);
         }
 
+        private void UpdateAnimation()
+        {
+            if (animationController == null)
+            {
+                return;
+            }
+
+            float normalizedSpeed = sprintSpeed > 0f
+                ? Mathf.Clamp01(PlanarVelocity.magnitude / sprintSpeed)
+                : 0f;
+
+            animationController.SetLocomotion(currentMoveInput, normalizedSpeed, IsSprinting, IsAiming);
+        }
+
         private void HandleFireRequested()
         {
             if (weapon == null)
@@ -148,12 +184,18 @@ namespace TacticalEcho.Character.Player
                     ? cameraOrientation
                     : transform;
 
-            weapon.TryFire(origin.position, origin.forward);
+            if (weapon.TryFire(origin.position, origin.forward))
+            {
+                animationController?.PlayFire();
+            }
         }
 
         private void HandleReloadRequested()
         {
-            weapon?.TryBeginReload();
+            if (weapon != null && weapon.TryBeginReload())
+            {
+                animationController?.PlayReload();
+            }
         }
     }
 }

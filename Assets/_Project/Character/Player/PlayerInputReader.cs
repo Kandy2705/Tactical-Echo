@@ -64,6 +64,22 @@ namespace TacticalEcho.Character.Player
             SetEnabled(aimAction, false);
         }
 
+        public void Configure(
+            InputActionReference move,
+            InputActionReference look,
+            InputActionReference sprint,
+            InputActionReference fire,
+            InputActionReference reload,
+            InputActionReference aim)
+        {
+            moveAction = move;
+            lookAction = look;
+            sprintAction = sprint;
+            fireAction = fire;
+            reloadAction = reload;
+            aimAction = aim;
+        }
+
         private void OnFirePerformed(InputAction.CallbackContext context)
         {
             FireRequested?.Invoke();
