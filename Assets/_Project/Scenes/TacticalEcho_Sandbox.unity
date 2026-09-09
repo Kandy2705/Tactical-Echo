@@ -19658,8 +19658,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.CameraSystem.PlayerCameraController
   target: {fileID: 604206356}
   input: {fileID: 604206357}
-  exploreOffset: {x: 0.6, y: 1.7, z: -3.5}
-  aimOffset: {x: 0.8, y: 1.6, z: -2}
+  exploreOffset: {x: 0.65, y: 0.15, z: -3.6}
+  aimOffset: {x: 0.8, y: 0.08, z: -2.2}
   mouseSensitivity: 0.12
   gamepadSensitivity: 120
   minPitch: -35
@@ -66317,12 +66317,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1763673449}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1763871027 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 192062, guid: 5f29f207d858fd245b7befaa18ea3284,
-    type: 3}
-  m_PrefabInstance: {fileID: 2482109}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1772831767
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -78547,43 +78541,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 2100653914}
   m_PrefabAsset: {fileID: 0}
---- !u!84 &2100816785
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: WaterDepthMap
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 6
-  m_Width: 1024
-  m_Height: 1024
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 94
-  m_ColorFormat: 0
-  m_MipMap: 0
-  m_GenerateMips: 1
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_UseDynamicScaleExplicit: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!1 &2101134588
 GameObject:
   m_ObjectHideFlags: 0
@@ -81320,3 +81277,4 @@ SceneRoots:
   - {fileID: 213083057}
   - {fileID: 2016397612}
   - {fileID: 604206355}
+  - {fileID: 1003008732}
