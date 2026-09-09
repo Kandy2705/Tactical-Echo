@@ -24,6 +24,20 @@ namespace TacticalEcho.Character.Player
         public bool IsSprinting => IsPressed(sprintAction);
         public bool IsAiming => IsPressed(aimAction);
 
+        public bool IsPointerLook
+        {
+            get
+            {
+                if (lookAction == null || lookAction.action == null)
+                {
+                    return true;
+                }
+
+                InputControl activeControl = lookAction.action.activeControl;
+                return activeControl == null || activeControl.device is Pointer;
+            }
+        }
+
         private void OnEnable()
         {
             SetEnabled(moveAction, true);
