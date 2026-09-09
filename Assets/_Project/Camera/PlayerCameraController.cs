@@ -20,14 +20,14 @@ namespace TacticalEcho.CameraSystem
         [SerializeField] private Vector3 aimOffset = new(0.8f, 1.6f, -2f);
 
         [Header("Look")]
-        [SerializeField, Min(0.01f)] private float mouseSensitivity = 0.12f;
+        [SerializeField, Min(0.01f)] private float mouseSensitivity = 0.08f;
         [SerializeField, Min(0.01f)] private float gamepadSensitivity = 120f;
         [SerializeField] private float minPitch = -35f;
         [SerializeField] private float maxPitch = 70f;
 
         [Header("Follow")]
-        [SerializeField, Min(0.01f)] private float followSharpness = 14f;
-        [SerializeField, Min(0.01f)] private float rotationSharpness = 18f;
+        [SerializeField, Min(0.01f)] private float followSharpness = 18f;
+        [SerializeField, Min(0.01f)] private float rotationSharpness = 24f;
 
         private float yaw;
         private float pitch;
@@ -83,10 +83,9 @@ namespace TacticalEcho.CameraSystem
                 return;
             }
 
-            bool likelyMouseDelta = Mathf.Abs(look.x) > 1f || Mathf.Abs(look.y) > 1f;
-            float scale = likelyMouseDelta
+            float scale = input.IsPointerLook
                 ? mouseSensitivity
-                : gamepadSensitivity * Time.deltaTime;
+                : gamepadSensitivity * Time.unscaledDeltaTime;
 
             yaw += look.x * scale;
             pitch -= look.y * scale;
@@ -101,8 +100,8 @@ namespace TacticalEcho.CameraSystem
 
             Vector3 desiredPosition = target.position + desiredRotation * offset;
 
-            float positionT = 1f - Mathf.Exp(-followSharpness * Time.deltaTime);
-            float rotationT = 1f - Mathf.Exp(-rotationSharpness * Time.deltaTime);
+            float positionT = 1f - Mathf.Exp(-followSharpness * Time.unscaledDeltaTime);
+            float rotationT = 1f - Mathf.Exp(-rotationSharpness * Time.unscaledDeltaTime);
 
             transform.position = Vector3.Lerp(transform.position, desiredPosition, positionT);
             transform.rotation = Quaternion.Slerp(transform.rotation, desiredRotation, rotationT);
