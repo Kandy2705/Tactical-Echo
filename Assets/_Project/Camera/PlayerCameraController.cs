@@ -39,9 +39,7 @@ namespace TacticalEcho.CameraSystem
 
         private void Start()
         {
-            Vector3 angles = transform.eulerAngles;
-            yaw = angles.y;
-            pitch = NormalizeSignedAngle(angles.x);
+            SyncLookAnglesFromTransform();
         }
 
         private void LateUpdate()
@@ -53,6 +51,13 @@ namespace TacticalEcho.CameraSystem
 
             UpdateLook();
             UpdateTransform();
+        }
+
+        public void Configure(Transform newTarget, PlayerInputReader inputReader)
+        {
+            target = newTarget;
+            input = inputReader;
+            SyncLookAnglesFromTransform();
         }
 
         public void SetMode(CameraMode mode)
@@ -101,6 +106,13 @@ namespace TacticalEcho.CameraSystem
 
             transform.position = Vector3.Lerp(transform.position, desiredPosition, positionT);
             transform.rotation = Quaternion.Slerp(transform.rotation, desiredRotation, rotationT);
+        }
+
+        private void SyncLookAnglesFromTransform()
+        {
+            Vector3 angles = transform.eulerAngles;
+            yaw = angles.y;
+            pitch = Mathf.Clamp(NormalizeSignedAngle(angles.x), minPitch, maxPitch);
         }
 
         private static float NormalizeSignedAngle(float angle)
