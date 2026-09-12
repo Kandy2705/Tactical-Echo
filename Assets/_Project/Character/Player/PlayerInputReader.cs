@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -16,13 +15,13 @@ namespace TacticalEcho.Character.Player
         [SerializeField] private InputActionReference reloadAction;
         [SerializeField] private InputActionReference aimAction;
 
-        public event Action FireRequested;
-        public event Action ReloadRequested;
-
         public Vector2 Move => ReadVector2(moveAction);
         public Vector2 Look => ReadVector2(lookAction);
         public bool IsSprinting => IsPressed(sprintAction);
-        public bool IsAiming => IsPressed(aimAction);
+        public bool IsFiring => IsPressed(fireAction) || (fireAction == null && Mouse.current != null && Mouse.current.leftButton.isPressed);
+        public bool FirePressedThisFrame => WasPressedThisFrame(fireAction) || (fireAction == null && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame);
+        public bool ReloadPressedThisFrame => WasPressedThisFrame(reloadAction) || (reloadAction == null && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame);
+        public bool IsAiming => IsPressed(aimAction) || (aimAction == null && Mouse.current != null && Mouse.current.rightButton.isPressed);
 
         public bool IsPointerLook
         {
@@ -46,30 +45,10 @@ namespace TacticalEcho.Character.Player
             SetEnabled(fireAction, true);
             SetEnabled(reloadAction, true);
             SetEnabled(aimAction, true);
-
-            if (fireAction != null)
-            {
-                fireAction.action.performed += OnFirePerformed;
-            }
-
-            if (reloadAction != null)
-            {
-                reloadAction.action.performed += OnReloadPerformed;
-            }
         }
 
         private void OnDisable()
         {
-            if (fireAction != null)
-            {
-                fireAction.action.performed -= OnFirePerformed;
-            }
-
-            if (reloadAction != null)
-            {
-                reloadAction.action.performed -= OnReloadPerformed;
-            }
-
             SetEnabled(moveAction, false);
             SetEnabled(lookAction, false);
             SetEnabled(sprintAction, false);
@@ -94,16 +73,6 @@ namespace TacticalEcho.Character.Player
             aimAction = aim;
         }
 
-        private void OnFirePerformed(InputAction.CallbackContext context)
-        {
-            FireRequested?.Invoke();
-        }
-
-        private void OnReloadPerformed(InputAction.CallbackContext context)
-        {
-            ReloadRequested?.Invoke();
-        }
-
         private static Vector2 ReadVector2(InputActionReference actionReference)
         {
             return actionReference != null
@@ -114,6 +83,11 @@ namespace TacticalEcho.Character.Player
         private static bool IsPressed(InputActionReference actionReference)
         {
             return actionReference != null && actionReference.action.IsPressed();
+        }
+
+        private static bool WasPressedThisFrame(InputActionReference actionReference)
+        {
+            return actionReference != null && actionReference.action.WasPressedThisFrame();
         }
 
         private static void SetEnabled(InputActionReference actionReference, bool enabled)
