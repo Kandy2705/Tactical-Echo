@@ -60,7 +60,8 @@ namespace TacticalEcho.EditorTools
                     "- Aim pose\n" +
                     "- Fire animation\n" +
                     "- Reload animation\n" +
-                    "- Avatar Mask thân trên\n\n" +
+                    "- Avatar Mask thân trên\n" +
+                    "- IK Pass cho tay trái\n\n" +
                     "Play Mode để test: chuột phải Aim, chuột trái bắn, R reload.",
                     "OK");
             }
@@ -132,6 +133,7 @@ namespace TacticalEcho.EditorTools
             layer.avatarMask = mask;
             layer.defaultWeight = 1f;
             layer.blendingMode = AnimatorLayerBlendingMode.Override;
+            layer.iKPass = true;
 
             AnimatorStateMachine stateMachine = layer.stateMachine;
             ClearStateMachine(stateMachine);
