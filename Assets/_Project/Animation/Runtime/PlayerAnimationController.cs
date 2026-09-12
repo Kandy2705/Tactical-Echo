@@ -32,13 +32,6 @@ namespace TacticalEcho.AnimationSystem.Runtime
             ResolveAnimator();
         }
 
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            ResolveAnimator();
-        }
-#endif
-
         public void Configure(PlayerVisualController newVisual)
         {
             visual = newVisual;

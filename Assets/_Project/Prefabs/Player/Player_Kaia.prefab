@@ -87,8 +87,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2953337479468953978}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0.03986171, y: -0.7042318, z: -0.708492, w: 0.022529539}
+  m_LocalPosition: {x: 0.145, y: -0.018, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -118,9 +118,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3976928248465079055}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.03986173, y: 0.7042319, z: 0.70849204, w: 0.022529617}
+  m_LocalPosition: {x: 0.23158534, y: -0.020623889, z: 0.023034677}
+  m_LocalScale: {x: 1.5990368, y: 1.5990368, z: 1.5990368}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4892593765797268917}
@@ -317,8 +317,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7073679566207528136}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.1048213, y: 0, z: 0}
+  m_LocalRotation: {x: -0.05906238, y: 0.1189977, z: 0.9871257, w: -0.08908973}
+  m_LocalPosition: {x: -0.035, y: 0.022, z: -0.018}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -348,8 +348,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8944676987887509229}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0.55}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: -0.1632, y: 0.019, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -705,8 +705,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.AnimationSystem.Runtime.WeaponHandIKController
   gripPoints: {fileID: 5360200152202480884}
+  upperBodyLayerName: Upper Body
   positionWeight: 1
   rotationWeight: 1
-  blendSpeed: 12
+  blendSpeed: 14
   enableLeftHandIK: 1
-  calibrateGripPointsOnStart: 1
+  aimWeight: 1
+  fireWeight: 0.9
+  reloadWeight: 0
+  defaultWeight: 0.8
