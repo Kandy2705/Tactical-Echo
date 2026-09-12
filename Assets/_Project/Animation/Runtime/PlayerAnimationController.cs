@@ -47,7 +47,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         public void SetLocomotion(Vector2 moveInput, float normalizedSpeed, bool isSprinting, bool isAiming)
         {
-            if (animator == null)
+            if (!HasPlayableAnimator())
             {
                 return;
             }
@@ -63,7 +63,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         public void PlayFire()
         {
-            if (animator == null)
+            if (!HasPlayableAnimator())
             {
                 return;
             }
@@ -74,7 +74,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         public void PlayReload()
         {
-            if (animator == null)
+            if (!HasPlayableAnimator())
             {
                 return;
             }
@@ -85,7 +85,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         private void UpdateUpperBodyLayer(bool isAiming)
         {
-            if (upperBodyLayerIndex < 0 || animator == null)
+            if (upperBodyLayerIndex < 0 || !HasPlayableAnimator())
             {
                 return;
             }
@@ -105,10 +105,22 @@ namespace TacticalEcho.AnimationSystem.Runtime
                 animator = GetComponentInChildren<Animator>(true);
             }
 
-            upperBodyLayerIndex = animator != null ? animator.GetLayerIndex(UpperBodyLayerName) : -1;
-            upperBodyLayerWeight = upperBodyLayerIndex >= 0 && animator != null
+            if (!HasPlayableAnimator())
+            {
+                upperBodyLayerIndex = -1;
+                upperBodyLayerWeight = 0f;
+                return;
+            }
+
+            upperBodyLayerIndex = animator.GetLayerIndex(UpperBodyLayerName);
+            upperBodyLayerWeight = upperBodyLayerIndex >= 0
                 ? animator.GetLayerWeight(upperBodyLayerIndex)
                 : 0f;
+        }
+
+        private bool HasPlayableAnimator()
+        {
+            return animator != null && animator.runtimeAnimatorController != null;
         }
     }
 }
