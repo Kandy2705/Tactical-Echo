@@ -17,7 +17,10 @@ namespace TacticalEcho.Combat.Weapons
         public int ReserveAmmo { get; private set; }
         public bool IsReloading { get; private set; }
         public float NextAllowedFireTime { get; private set; }
+        public float ReloadCompleteTime { get; private set; }
         public float AmmoRatio => Definition.MagazineSize <= 0 ? 0f : (float)MagazineAmmo / Definition.MagazineSize;
+        public bool IsMagazineEmpty => MagazineAmmo <= 0;
+        public bool HasReserveAmmo => ReserveAmmo > 0;
 
         public bool CanFire(float currentTime)
         {
@@ -36,7 +39,7 @@ namespace TacticalEcho.Combat.Weapons
             return true;
         }
 
-        public bool TryBeginReload()
+        public bool TryBeginReload(float currentTime)
         {
             if (IsReloading || MagazineAmmo >= Definition.MagazineSize || ReserveAmmo <= 0)
             {
@@ -44,14 +47,20 @@ namespace TacticalEcho.Combat.Weapons
             }
 
             IsReloading = true;
+            ReloadCompleteTime = currentTime + Definition.ReloadTime;
             return true;
         }
 
-        public void CompleteReload()
+        public bool ShouldCompleteReload(float currentTime)
+        {
+            return IsReloading && currentTime >= ReloadCompleteTime;
+        }
+
+        public bool CompleteReload()
         {
             if (!IsReloading)
             {
-                return;
+                return false;
             }
 
             int needed = Definition.MagazineSize - MagazineAmmo;
@@ -59,11 +68,14 @@ namespace TacticalEcho.Combat.Weapons
             MagazineAmmo += transferred;
             ReserveAmmo -= transferred;
             IsReloading = false;
+            ReloadCompleteTime = 0f;
+            return true;
         }
 
         public void CancelReload()
         {
             IsReloading = false;
+            ReloadCompleteTime = 0f;
         }
     }
 }
