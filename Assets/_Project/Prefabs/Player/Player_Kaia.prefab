@@ -205,6 +205,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.AnimationSystem.Runtime.PlayerAnimationController
   visual: {fileID: 8539658344473929940}
   locomotionDampTime: 0.1
+  relaxedWeaponLayerWeight: 0.78
+  aimWeaponLayerWeight: 1
+  weaponLayerBlendSpeed: 10
 --- !u!114 &942052521464371640
 MonoBehaviour:
   m_ObjectHideFlags: 0
