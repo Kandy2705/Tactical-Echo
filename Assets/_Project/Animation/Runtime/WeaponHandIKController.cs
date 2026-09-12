@@ -45,9 +45,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
             ResolveUpperBodyLayer();
         }
 
-        // The second parameter is kept for compatibility with older setup code/prefabs.
-        // Grip anchors are now authored points on the weapon and are never recalibrated at runtime.
-        public void Configure(WeaponGripPoints newGripPoints, bool calibrateOnStart = false)
+        public void Configure(WeaponGripPoints newGripPoints)
         {
             gripPoints = newGripPoints;
             ResolveUpperBodyLayer();
