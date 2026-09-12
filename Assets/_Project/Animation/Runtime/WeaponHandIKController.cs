@@ -1,3 +1,4 @@
+using TacticalEcho.Character.Player;
 using TacticalEcho.Combat.Weapons;
 using UnityEngine;
 
@@ -33,6 +34,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
         private Animator animator;
         private int upperBodyLayerIndex = -1;
         private float currentWeight;
+        private bool weaponFacingChecked;
 
         private void Awake()
         {
@@ -42,17 +44,29 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         private void OnEnable()
         {
+            weaponFacingChecked = false;
             ResolveUpperBodyLayer();
+        }
+
+        private void Start()
+        {
+            CorrectWeaponFacingIfNeeded();
         }
 
         public void Configure(WeaponGripPoints newGripPoints)
         {
             gripPoints = newGripPoints;
+            weaponFacingChecked = false;
             ResolveUpperBodyLayer();
         }
 
         private void OnAnimatorIK(int layerIndex)
         {
+            if (!weaponFacingChecked)
+            {
+                CorrectWeaponFacingIfNeeded();
+            }
+
             if (animator == null || gripPoints == null || gripPoints.LeftHandGrip == null)
             {
                 return;
@@ -77,6 +91,52 @@ namespace TacticalEcho.AnimationSystem.Runtime
             animator.SetIKRotationWeight(AvatarIKGoal.LeftHand, rotationWeight * currentWeight);
             animator.SetIKPosition(AvatarIKGoal.LeftHand, target.position);
             animator.SetIKRotation(AvatarIKGoal.LeftHand, target.rotation);
+        }
+
+        private void CorrectWeaponFacingIfNeeded()
+        {
+            weaponFacingChecked = true;
+
+            if (animator == null || !animator.isHuman || gripPoints == null)
+            {
+                return;
+            }
+
+            Transform rightGrip = gripPoints.RightHandGrip;
+            Transform leftGrip = gripPoints.LeftHandGrip;
+            Transform rightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
+            Transform weaponMount = gripPoints.transform.parent;
+
+            if (rightGrip == null || leftGrip == null || rightHand == null || weaponMount == null)
+            {
+                return;
+            }
+
+            PlayerController player = animator.GetComponentInParent<PlayerController>();
+            Transform characterRoot = player != null ? player.transform : animator.transform;
+            Vector3 up = characterRoot.up;
+
+            // For a rifle, the support-hand grip is physically in front of the trigger-hand grip.
+            // That makes RightHandGrip -> LeftHandGrip a stable weapon-forward reference without
+            // depending on the imported model's arbitrary FBX local axes.
+            Vector3 gripForward = Vector3.ProjectOnPlane(leftGrip.position - rightGrip.position, up);
+            Vector3 characterForward = Vector3.ProjectOnPlane(characterRoot.forward, up);
+
+            if (gripForward.sqrMagnitude < 0.0001f || characterForward.sqrMagnitude < 0.0001f)
+            {
+                return;
+            }
+
+            gripForward.Normalize();
+            characterForward.Normalize();
+
+            // If the barrel/support-hand side points behind the character, rotate the complete
+            // weapon mount around the right-hand pivot. Because the right-hand grip already sits
+            // on that pivot, its position remains locked while the rifle direction is corrected.
+            if (Vector3.Dot(gripForward, characterForward) < -0.05f)
+            {
+                weaponMount.RotateAround(rightHand.position, up, 180f);
+            }
         }
 
         private float EvaluateStateWeight()
