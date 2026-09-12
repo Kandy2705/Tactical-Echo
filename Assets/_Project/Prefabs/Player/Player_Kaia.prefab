@@ -63,6 +63,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 6021265866496699527}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2953337479468953978
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1559949935963193823}
+  m_Layer: 0
+  m_Name: RightHandGrip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1559949935963193823
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2953337479468953978}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4892593765797268917}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3976928248465079055
 GameObject:
   m_ObjectHideFlags: 0
@@ -262,6 +293,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 6021265866496699527}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7073679566207528136
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4850202776221066293}
+  m_Layer: 0
+  m_Name: LeftHandGrip
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4850202776221066293
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7073679566207528136}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -1.1048213, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4892593765797268917}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8944676987887509229
 GameObject:
   m_ObjectHideFlags: 0
@@ -363,11 +425,23 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 23424880984001067}
+    - targetCorrespondingSourceObject: {fileID: 1460032715640809495, guid: f62b5068047cd4a4ba988852d05acfe5,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1559949935963193823}
+    - targetCorrespondingSourceObject: {fileID: 1460032715640809495, guid: f62b5068047cd4a4ba988852d05acfe5,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4850202776221066293}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2236253442610328237, guid: f62b5068047cd4a4ba988852d05acfe5,
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 3701341866759072246}
+    - targetCorrespondingSourceObject: {fileID: 2236253442610328237, guid: f62b5068047cd4a4ba988852d05acfe5,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5360200152202480884}
   m_SourcePrefab: {fileID: 100100000, guid: f62b5068047cd4a4ba988852d05acfe5, type: 3}
 --- !u!4 &4892593765797268917 stripped
 Transform:
@@ -398,6 +472,21 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 4294967295
+--- !u!114 &5360200152202480884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5237172582143448847}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2eb51dcd5f08841cbb683a214361d679, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.Combat.Weapons.WeaponGripPoints
+  rightHandGrip: {fileID: 1559949935963193823}
+  leftHandGrip: {fileID: 4850202776221066293}
+  muzzle: {fileID: 23424880984001067}
 --- !u!1001 &7990431205053112701
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -573,7 +662,11 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 3616047397370879017}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3210419486294750922, guid: 7fe090d28195a413194b4f187582c1b2,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6426528920237179230}
   m_SourcePrefab: {fileID: 100100000, guid: 7fe090d28195a413194b4f187582c1b2, type: 3}
 --- !u!4 &1375903391358826197 stripped
 Transform:
@@ -593,3 +686,27 @@ Animator:
     type: 3}
   m_PrefabInstance: {fileID: 7990431205053112701}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &4786769346367330231 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3210419486294750922, guid: 7fe090d28195a413194b4f187582c1b2,
+    type: 3}
+  m_PrefabInstance: {fileID: 7990431205053112701}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6426528920237179230
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4786769346367330231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d17a6d607e69415ca0086732a494f4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.AnimationSystem.Runtime.WeaponHandIKController
+  gripPoints: {fileID: 5360200152202480884}
+  positionWeight: 1
+  rotationWeight: 1
+  blendSpeed: 12
+  enableLeftHandIK: 1
+  calibrateGripPointsOnStart: 1
