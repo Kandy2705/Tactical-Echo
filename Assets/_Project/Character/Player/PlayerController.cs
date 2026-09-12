@@ -37,28 +37,6 @@ namespace TacticalEcho.Character.Player
             characterController = GetComponent<CharacterController>();
         }
 
-        private void OnEnable()
-        {
-            if (input == null)
-            {
-                return;
-            }
-
-            input.FireRequested += HandleFireRequested;
-            input.ReloadRequested += HandleReloadRequested;
-        }
-
-        private void OnDisable()
-        {
-            if (input == null)
-            {
-                return;
-            }
-
-            input.FireRequested -= HandleFireRequested;
-            input.ReloadRequested -= HandleReloadRequested;
-        }
-
         private void Update()
         {
             if (input == null || characterController == null)
@@ -69,6 +47,7 @@ namespace TacticalEcho.Character.Player
             UpdateMovement();
             UpdateRotation();
             UpdateCameraMode();
+            UpdateCombat();
             UpdateAnimation();
         }
 
@@ -82,6 +61,11 @@ namespace TacticalEcho.Character.Player
             weapon = weaponController;
             aimOrigin = newAimOrigin;
             animationController = newAnimationController;
+        }
+
+        public void ConfigureWeapon(WeaponController weaponController)
+        {
+            weapon = weaponController;
         }
 
         public void ConfigureCamera(PlayerCameraController cameraController, Transform orientation)
@@ -157,6 +141,54 @@ namespace TacticalEcho.Character.Player
             playerCamera.SetMode(IsAiming ? CameraMode.Aim : CameraMode.Explore);
         }
 
+        private void UpdateCombat()
+        {
+            if (weapon == null)
+            {
+                return;
+            }
+
+            if (input.ReloadPressedThisFrame)
+            {
+                if (weapon.TryBeginReload())
+                {
+                    animationController?.PlayReload();
+                }
+                return;
+            }
+
+            if (weapon.IsReloading)
+            {
+                return;
+            }
+
+            bool wantsToFire = weapon.Definition != null && weapon.Definition.FireMode == FireMode.Automatic
+                ? input.IsFiring
+                : input.FirePressedThisFrame;
+
+            if (!wantsToFire)
+            {
+                return;
+            }
+
+            Vector3 origin = cameraOrientation != null
+                ? cameraOrientation.position
+                : aimOrigin != null
+                    ? aimOrigin.position
+                    : transform.position + Vector3.up * 1.5f;
+
+            Vector3 direction = cameraOrientation != null
+                ? cameraOrientation.forward
+                : aimOrigin != null
+                    ? aimOrigin.forward
+                    : transform.forward;
+
+            if (weapon.TryFire(origin, direction))
+            {
+                animationController?.PlayFire();
+            }
+        }
+
         private void UpdateAnimation()
         {
             if (animationController == null)
@@ -169,33 +201,6 @@ namespace TacticalEcho.Character.Player
                 : 0f;
 
             animationController.SetLocomotion(currentMoveInput, normalizedSpeed, IsSprinting, IsAiming);
-        }
-
-        private void HandleFireRequested()
-        {
-            if (weapon == null)
-            {
-                return;
-            }
-
-            Transform origin = aimOrigin != null
-                ? aimOrigin
-                : cameraOrientation != null
-                    ? cameraOrientation
-                    : transform;
-
-            if (weapon.TryFire(origin.position, origin.forward))
-            {
-                animationController?.PlayFire();
-            }
-        }
-
-        private void HandleReloadRequested()
-        {
-            if (weapon != null && weapon.TryBeginReload())
-            {
-                animationController?.PlayReload();
-            }
         }
     }
 }
