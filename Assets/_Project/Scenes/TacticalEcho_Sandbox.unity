@@ -22771,42 +22771,52 @@ PrefabInstance:
     - target: {fileID: 3616047397370879017, guid: a6c68ba89a377474cb263f9baed14acd,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.044
+      value: 0.045
       objectReference: {fileID: 0}
     - target: {fileID: 3616047397370879017, guid: a6c68ba89a377474cb263f9baed14acd,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.028
+      value: -0.018
       objectReference: {fileID: 0}
     - target: {fileID: 3616047397370879017, guid: a6c68ba89a377474cb263f9baed14acd,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.067
+      value: 0.01
       objectReference: {fileID: 0}
     - target: {fileID: 3616047397370879017, guid: a6c68ba89a377474cb263f9baed14acd,
         type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.6717207
+      value: 0.6167046
       objectReference: {fileID: 0}
     - target: {fileID: 3616047397370879017, guid: a6c68ba89a377474cb263f9baed14acd,
         type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.74080455
+      value: 0.73268837
       objectReference: {fileID: 0}
     - target: {fileID: 3616047397370879017, guid: a6c68ba89a377474cb263f9baed14acd,
         type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0.26785436
+      objectReference: {fileID: 0}
+    - target: {fileID: 3616047397370879017, guid: a6c68ba89a377474cb263f9baed14acd,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.10534363
       objectReference: {fileID: 0}
     - target: {fileID: 3616047397370879017, guid: a6c68ba89a377474cb263f9baed14acd,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 95.6
+      value: 122.084
       objectReference: {fileID: 0}
     - target: {fileID: 3616047397370879017, guid: a6c68ba89a377474cb263f9baed14acd,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: 65.868
+      objectReference: {fileID: 0}
+    - target: {fileID: 3616047397370879017, guid: a6c68ba89a377474cb263f9baed14acd,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 79.603
       objectReference: {fileID: 0}
     - target: {fileID: 4892593765797268917, guid: a6c68ba89a377474cb263f9baed14acd,
         type: 3}
@@ -50356,43 +50366,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1290385356}
   m_PrefabAsset: {fileID: 0}
---- !u!84 &1294978365
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: WaterDepthMap
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 6
-  m_Width: 1024
-  m_Height: 1024
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 94
-  m_ColorFormat: 0
-  m_MipMap: 0
-  m_GenerateMips: 1
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_UseDynamicScaleExplicit: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!4 &1296229028 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4209614434616532, guid: d3c9d0f652fa2454eb70f623ca29ddc4,
