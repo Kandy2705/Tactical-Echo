@@ -13,10 +13,19 @@ namespace TacticalEcho.AnimationSystem.Runtime
         private static readonly int FireHash = Animator.StringToHash("Fire");
         private static readonly int ReloadHash = Animator.StringToHash("Reload");
 
+        private const string UpperBodyLayerName = "Upper Body";
+
         [SerializeField] private PlayerVisualController visual;
         [SerializeField, Min(0f)] private float locomotionDampTime = 0.1f;
 
+        [Header("Rifle Upper Body")]
+        [SerializeField, Range(0f, 1f)] private float relaxedWeaponLayerWeight = 0.78f;
+        [SerializeField, Range(0f, 1f)] private float aimWeaponLayerWeight = 1f;
+        [SerializeField, Min(0.01f)] private float weaponLayerBlendSpeed = 10f;
+
         private Animator animator;
+        private int upperBodyLayerIndex = -1;
+        private float upperBodyLayerWeight;
 
         private void Awake()
         {
@@ -48,16 +57,43 @@ namespace TacticalEcho.AnimationSystem.Runtime
             animator.SetFloat(MoveYHash, moveInput.y, locomotionDampTime, Time.deltaTime);
             animator.SetBool(SprintingHash, isSprinting);
             animator.SetBool(AimHash, isAiming);
+
+            UpdateUpperBodyLayer(isAiming);
         }
 
         public void PlayFire()
         {
-            animator?.SetTrigger(FireHash);
+            if (animator == null)
+            {
+                return;
+            }
+
+            animator.ResetTrigger(FireHash);
+            animator.SetTrigger(FireHash);
         }
 
         public void PlayReload()
         {
-            animator?.SetTrigger(ReloadHash);
+            if (animator == null)
+            {
+                return;
+            }
+
+            animator.ResetTrigger(ReloadHash);
+            animator.SetTrigger(ReloadHash);
+        }
+
+        private void UpdateUpperBodyLayer(bool isAiming)
+        {
+            if (upperBodyLayerIndex < 0 || animator == null)
+            {
+                return;
+            }
+
+            float targetWeight = isAiming ? aimWeaponLayerWeight : relaxedWeaponLayerWeight;
+            float blend = 1f - Mathf.Exp(-weaponLayerBlendSpeed * Time.deltaTime);
+            upperBodyLayerWeight = Mathf.Lerp(upperBodyLayerWeight, targetWeight, blend);
+            animator.SetLayerWeight(upperBodyLayerIndex, upperBodyLayerWeight);
         }
 
         private void ResolveAnimator()
@@ -68,6 +104,11 @@ namespace TacticalEcho.AnimationSystem.Runtime
             {
                 animator = GetComponentInChildren<Animator>(true);
             }
+
+            upperBodyLayerIndex = animator != null ? animator.GetLayerIndex(UpperBodyLayerName) : -1;
+            upperBodyLayerWeight = upperBodyLayerIndex >= 0 && animator != null
+                ? animator.GetLayerWeight(upperBodyLayerIndex)
+                : 0f;
         }
     }
 }
