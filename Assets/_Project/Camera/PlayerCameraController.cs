@@ -37,6 +37,12 @@ namespace TacticalEcho.CameraSystem
         [SerializeField, Min(0.01f)] private float followSharpness = 18f;
         [SerializeField, Min(0.01f)] private float rotationSharpness = 24f;
 
+        [Header("Recoil")]
+        [SerializeField, Min(0f)] private float recoilPitchDegrees = 0.75f;
+        [SerializeField, Min(0f)] private float recoilYawDegrees = 0.28f;
+        [SerializeField, Min(0.01f)] private float recoilReturnSharpness = 12f;
+        [SerializeField, Min(0.01f)] private float recoilKickSharpness = 28f;
+
         [Header("Crosshair")]
         [SerializeField] private bool showCrosshairOnlyWhileAiming = true;
         [SerializeField, Min(1f)] private float crosshairLength = 8f;
@@ -52,6 +58,9 @@ namespace TacticalEcho.CameraSystem
         private float shoulderSign = 1f;
         private Vector3 currentOffset;
         private Camera gameplayCamera;
+
+        private Vector2 recoilTarget;
+        private Vector2 recoilCurrent;
 
         private Canvas crosshairCanvas;
         private Image[] crosshairParts;
@@ -86,6 +95,7 @@ namespace TacticalEcho.CameraSystem
             }
 
             UpdateLook();
+            UpdateRecoil();
             UpdateTransform();
             UpdateCrosshair();
         }
@@ -109,6 +119,17 @@ namespace TacticalEcho.CameraSystem
         public void SetMode(CameraMode mode)
         {
             Mode = mode;
+        }
+
+        public void AddRecoil(float strength = 1f)
+        {
+            if (strength <= 0f)
+            {
+                return;
+            }
+
+            recoilTarget.y += recoilPitchDegrees * strength;
+            recoilTarget.x += UnityEngine.Random.Range(-recoilYawDegrees, recoilYawDegrees) * strength;
         }
 
         public void SwitchShoulder()
@@ -138,9 +159,22 @@ namespace TacticalEcho.CameraSystem
             pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
         }
 
+        private void UpdateRecoil()
+        {
+            float kickT = 1f - Mathf.Exp(-recoilKickSharpness * Time.unscaledDeltaTime);
+            recoilCurrent = Vector2.Lerp(recoilCurrent, recoilTarget, kickT);
+
+            float returnT = 1f - Mathf.Exp(-recoilReturnSharpness * Time.unscaledDeltaTime);
+            recoilTarget = Vector2.Lerp(recoilTarget, Vector2.zero, returnT);
+        }
+
         private void UpdateTransform()
         {
-            Quaternion desiredRotation = Quaternion.Euler(pitch, yaw, 0f);
+            Quaternion desiredRotation = Quaternion.Euler(
+                Mathf.Clamp(pitch - recoilCurrent.y, minPitch, maxPitch),
+                yaw + recoilCurrent.x,
+                0f);
+
             Vector3 targetOffset = Mode == CameraMode.Aim ? aimOffset : exploreOffset;
             targetOffset.x = Mathf.Abs(targetOffset.x) * shoulderSign;
 
