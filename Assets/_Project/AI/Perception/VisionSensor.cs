@@ -9,8 +9,8 @@ namespace TacticalEcho.AI.Perception
         [SerializeField, Min(0.1f)] private float range = 20f;
         [SerializeField, Range(1f, 180f)] private float fieldOfView = 90f;
         [SerializeField, Min(0.01f)] private float scanInterval = 0.1f;
-        [SerializeField] private LayerMask targetMask;
-        [SerializeField] private LayerMask obstacleMask;
+        [SerializeField] private LayerMask targetMask = ~0;
+        [SerializeField] private LayerMask obstacleMask = ~0;
 
         private float scanTimer;
 
@@ -18,6 +18,25 @@ namespace TacticalEcho.AI.Perception
         public Transform VisibleTarget => HasLineOfSight ? target : null;
         public float Range => range;
         public float FieldOfView => fieldOfView;
+        public Transform EyeOrigin => eyeOrigin;
+        public Transform Target => target;
+
+        public void Configure(
+            Transform newEyeOrigin,
+            Transform newTarget,
+            LayerMask newTargetMask,
+            LayerMask newObstacleMask,
+            float newRange = 20f,
+            float newFieldOfView = 90f)
+        {
+            eyeOrigin = newEyeOrigin;
+            target = newTarget;
+            targetMask = newTargetMask;
+            obstacleMask = newObstacleMask;
+            range = Mathf.Max(0.1f, newRange);
+            fieldOfView = Mathf.Clamp(newFieldOfView, 1f, 180f);
+            scanTimer = 0f;
+        }
 
         public void TickSensor(float deltaTime)
         {
@@ -39,7 +58,8 @@ namespace TacticalEcho.AI.Perception
                 return;
             }
 
-            Vector3 toTarget = target.position - eyeOrigin.position;
+            Vector3 targetPoint = target.position + Vector3.up * 1.0f;
+            Vector3 toTarget = targetPoint - eyeOrigin.position;
             float distance = toTarget.magnitude;
             if (distance <= 0f || distance > range)
             {
@@ -54,7 +74,13 @@ namespace TacticalEcho.AI.Perception
             }
 
             int mask = targetMask.value | obstacleMask.value;
-            if (!Physics.Raycast(eyeOrigin.position, direction, out RaycastHit hit, range, mask, QueryTriggerInteraction.Ignore))
+            if (!Physics.Raycast(
+                    eyeOrigin.position,
+                    direction,
+                    out RaycastHit hit,
+                    distance,
+                    mask,
+                    QueryTriggerInteraction.Ignore))
             {
                 return;
             }
