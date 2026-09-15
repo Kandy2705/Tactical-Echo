@@ -11,7 +11,7 @@ namespace TacticalEcho.UI
         private const float Lifetime = 0.85f;
         private const float RiseSpeed = 78f;
 
-        private static readonly Color NormalDamageColor = new(0.95f, 0.04f, 0.03f, 1f);
+        private static readonly Color NormalDamageColor = new(1f, 0.82f, 0.08f, 1f);
         private static readonly Color CriticalDamageColor = new(1f, 0.24f, 0.03f, 1f);
 
         private sealed class Entry
