@@ -40,6 +40,7 @@ namespace TacticalEcho.Combat.Weapons
         public event Action Fired;
         public event Action<RaycastHit> HitResolved;
         public event Action DamageApplied;
+        public event Action<DamageFeedback> DamageFeedbackResolved;
         public event Action ReloadStarted;
         public event Action ReloadCompleted;
         public event Action<int, int> AmmoChanged;
@@ -145,8 +146,14 @@ namespace TacticalEcho.Combat.Weapons
             {
                 shotEnd = hit.point;
 
+                DamageHitZone hitZone = hit.collider.GetComponent<DamageHitZone>();
+                float multiplier = hitZone != null ? hitZone.DamageMultiplier : 1f;
+                float resolvedDamage = definition.Damage * multiplier;
+                DamageHitZoneType zoneType = hitZone != null ? hitZone.ZoneType : DamageHitZoneType.Generic;
+                bool isCritical = hitZone != null && hitZone.IsCritical;
+
                 DamageInfo damageInfo = new(
-                    definition.Damage,
+                    resolvedDamage,
                     hit.point,
                     hit.normal,
                     gameObject);
@@ -158,6 +165,11 @@ namespace TacticalEcho.Combat.Weapons
                 if (damageApplied)
                 {
                     DamageApplied?.Invoke();
+                    DamageFeedbackResolved?.Invoke(new DamageFeedback(
+                        resolvedDamage,
+                        hit.point,
+                        zoneType,
+                        isCritical));
                 }
             }
 
