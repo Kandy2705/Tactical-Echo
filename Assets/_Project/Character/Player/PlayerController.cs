@@ -24,10 +24,15 @@ namespace TacticalEcho.Character.Player
         [SerializeField, Min(0f)] private float gravity = 24f;
         [SerializeField, Min(0f)] private float groundedStickForce = 2f;
 
+        [Header("Combat Facing")]
+        [Tooltip("How long the character keeps facing the camera/crosshair direction after a successful shot.")]
+        [SerializeField, Min(0f)] private float fireFacingHoldTime = 0.18f;
+
         private CharacterController characterController;
         private PlayerCombatHud combatHud;
         private WeaponController subscribedWeapon;
         private float verticalVelocity;
+        private float fireFacingUntilTime;
         private Vector2 currentMoveInput;
 
         public Vector3 PlanarVelocity { get; private set; }
@@ -168,8 +173,9 @@ namespace TacticalEcho.Character.Player
         private void UpdateRotation()
         {
             Vector3 desiredForward;
+            bool keepCombatFacing = IsAiming || Time.time < fireFacingUntilTime;
 
-            if (IsAiming && cameraOrientation != null)
+            if (keepCombatFacing && cameraOrientation != null)
             {
                 desiredForward = Vector3.ProjectOnPlane(cameraOrientation.forward, Vector3.up);
             }
@@ -244,12 +250,21 @@ namespace TacticalEcho.Character.Player
                     ? aimOrigin.forward
                     : transform.forward;
 
+            // Hip-fire still uses the fixed crosshair/camera ray. Before a real shot is
+            // consumed, rotate the character toward that same direction so the pose,
+            // muzzle feedback and fire animation agree with where the shot actually goes.
+            if (weapon.Runtime != null && weapon.Runtime.CanFire(Time.time))
+            {
+                FaceShotDirection(direction);
+            }
+
             float movement01 = sprintSpeed > 0f
                 ? Mathf.Clamp01(PlanarVelocity.magnitude / sprintSpeed)
                 : 0f;
 
             if (weapon.TryFire(origin, direction, movement01, IsAiming))
             {
+                fireFacingUntilTime = Time.time + fireFacingHoldTime;
                 animationController?.PlayFire();
 
                 if (playerCamera != null && weapon.Definition != null)
@@ -257,6 +272,17 @@ namespace TacticalEcho.Character.Player
                     playerCamera.AddRecoil(weapon.Definition.Recoil);
                 }
             }
+        }
+
+        private void FaceShotDirection(Vector3 shotDirection)
+        {
+            Vector3 planarDirection = Vector3.ProjectOnPlane(shotDirection, Vector3.up);
+            if (planarDirection.sqrMagnitude <= 0.001f)
+            {
+                return;
+            }
+
+            transform.rotation = Quaternion.LookRotation(planarDirection.normalized, Vector3.up);
         }
 
         private void UpdateAnimation()
