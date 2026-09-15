@@ -27,6 +27,8 @@ namespace TacticalEcho.AI.Brain
         [SerializeField] private TacticalEvaluator tacticalEvaluator;
 
         private readonly StateMachine<EnemyStateId> stateMachine = new();
+        private Health subscribedHealth;
+        private bool isDead;
 
         public EnemyStateId CurrentState => stateMachine.CurrentId;
         public VisionSensor Vision => vision;
@@ -48,8 +50,24 @@ namespace TacticalEcho.AI.Brain
             stateMachine.ChangeState(EnemyStateId.Patrol);
         }
 
+        private void OnEnable()
+        {
+            BindHealthEvents();
+        }
+
+        private void OnDisable()
+        {
+            UnbindHealthEvents();
+        }
+
         private void Update()
         {
+            if (isDead || (health != null && !health.IsAlive))
+            {
+                HandleDied();
+                return;
+            }
+
             vision?.TickSensor(Time.deltaTime);
             hearing?.TickSensor(Time.deltaTime);
 
@@ -81,9 +99,17 @@ namespace TacticalEcho.AI.Brain
 
         public void ConfigureExecution(EnemyMovement newMovement, WeaponController newWeapon, Health newHealth)
         {
+            UnbindHealthEvents();
+
             movement = newMovement;
             weapon = newWeapon;
             health = newHealth;
+            isDead = health != null && !health.IsAlive;
+
+            if (isActiveAndEnabled)
+            {
+                BindHealthEvents();
+            }
         }
 
         public bool ChangeState(EnemyStateId nextState)
@@ -113,11 +139,52 @@ namespace TacticalEcho.AI.Brain
             };
         }
 
+        private void BindHealthEvents()
+        {
+            if (health == null || subscribedHealth == health)
+            {
+                return;
+            }
+
+            UnbindHealthEvents();
+            subscribedHealth = health;
+            subscribedHealth.Died += HandleDied;
+
+            if (!subscribedHealth.IsAlive)
+            {
+                HandleDied();
+            }
+        }
+
+        private void UnbindHealthEvents()
+        {
+            if (subscribedHealth == null)
+            {
+                return;
+            }
+
+            subscribedHealth.Died -= HandleDied;
+            subscribedHealth = null;
+        }
+
+        private void HandleDied()
+        {
+            if (isDead && CurrentState == EnemyStateId.Dead)
+            {
+                return;
+            }
+
+            isDead = true;
+            movement?.Stop();
+            weapon?.CancelReload();
+            ChangeState(EnemyStateId.Dead);
+        }
+
         private void UpdatePerceptionDrivenState(bool canSeeTarget, bool heardNoise)
         {
             if (health != null && !health.IsAlive)
             {
-                ChangeState(EnemyStateId.Dead);
+                HandleDied();
                 return;
             }
 

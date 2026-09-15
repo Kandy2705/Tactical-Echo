@@ -1,6 +1,7 @@
 using TacticalEcho.AnimationSystem.Runtime;
 using TacticalEcho.CameraSystem;
 using TacticalEcho.Combat.Damage;
+using TacticalEcho.Combat.Health;
 using TacticalEcho.Combat.Weapons;
 using TacticalEcho.UI;
 using UnityEngine;
@@ -8,6 +9,7 @@ using UnityEngine;
 namespace TacticalEcho.Character.Player
 {
     [RequireComponent(typeof(CharacterController))]
+    [RequireComponent(typeof(Health))]
     public sealed class PlayerController : MonoBehaviour
     {
         [Header("References")]
@@ -17,6 +19,7 @@ namespace TacticalEcho.Character.Player
         [SerializeField] private Transform cameraOrientation;
         [SerializeField] private Transform aimOrigin;
         [SerializeField] private PlayerAnimationController animationController;
+        [SerializeField] private Health health;
 
         [Header("Movement")]
         [SerializeField, Min(0f)] private float walkSpeed = 4.5f;
@@ -32,18 +35,28 @@ namespace TacticalEcho.Character.Player
         private CharacterController characterController;
         private PlayerCombatHud combatHud;
         private WeaponController subscribedWeapon;
+        private Health subscribedHealth;
         private float verticalVelocity;
         private float fireFacingUntilTime;
         private Vector2 currentMoveInput;
+        private bool isDead;
 
         public Vector3 PlanarVelocity { get; private set; }
         public bool IsGrounded => characterController != null && characterController.isGrounded;
-        public bool IsAiming => input != null && input.IsAiming;
-        public bool IsSprinting => input != null && input.IsSprinting && !IsAiming;
+        public bool IsAiming => !isDead && input != null && input.IsAiming;
+        public bool IsSprinting => !isDead && input != null && input.IsSprinting && !IsAiming;
+        public bool IsDead => isDead;
+        public Health Health => health;
 
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();
+            health = health != null ? health : GetComponent<Health>();
+            if (health == null)
+            {
+                health = gameObject.AddComponent<Health>();
+            }
+
             combatHud = GetComponent<PlayerCombatHud>();
             if (combatHud == null)
             {
@@ -54,17 +67,19 @@ namespace TacticalEcho.Character.Player
         private void OnEnable()
         {
             BindWeaponEvents();
+            BindHealthEvents();
             combatHud?.Configure(weapon);
         }
 
         private void OnDisable()
         {
             UnbindWeaponEvents();
+            UnbindHealthEvents();
         }
 
         private void Update()
         {
-            if (input == null || characterController == null)
+            if (isDead || input == null || characterController == null)
             {
                 return;
             }
@@ -138,6 +153,30 @@ namespace TacticalEcho.Character.Player
             subscribedWeapon = null;
         }
 
+        private void BindHealthEvents()
+        {
+            if (health == null || subscribedHealth == health)
+            {
+                return;
+            }
+
+            UnbindHealthEvents();
+            subscribedHealth = health;
+            subscribedHealth.Died += HandleDied;
+            isDead = !subscribedHealth.IsAlive;
+        }
+
+        private void UnbindHealthEvents()
+        {
+            if (subscribedHealth == null)
+            {
+                return;
+            }
+
+            subscribedHealth.Died -= HandleDied;
+            subscribedHealth = null;
+        }
+
         private void HandleDamageApplied()
         {
             playerCamera?.ShowHitMarker();
@@ -146,6 +185,24 @@ namespace TacticalEcho.Character.Player
         private static void HandleDamageFeedback(DamageFeedback feedback)
         {
             FloatingDamageNumberSystem.Show(feedback);
+        }
+
+        private void HandleDied()
+        {
+            if (isDead)
+            {
+                return;
+            }
+
+            isDead = true;
+            currentMoveInput = Vector2.zero;
+            PlanarVelocity = Vector3.zero;
+            verticalVelocity = 0f;
+            fireFacingUntilTime = 0f;
+
+            weapon?.CancelReload();
+            playerCamera?.SetMode(CameraMode.Explore);
+            animationController?.SetLocomotion(Vector2.zero, 0f, false, false);
         }
 
         private void UpdateMovement()
