@@ -30,6 +30,7 @@ namespace TacticalEcho.AI.Brain
 
         public EnemyStateId CurrentState => stateMachine.CurrentId;
         public VisionSensor Vision => vision;
+        public HearingSensor Hearing => hearing;
         public EnemyMemory Memory => memory;
         public EnemyMovement Movement => movement;
         public WeaponController Weapon => weapon;
@@ -52,7 +53,10 @@ namespace TacticalEcho.AI.Brain
             vision?.TickSensor(Time.deltaTime);
             hearing?.TickSensor(Time.deltaTime);
 
-            if (vision != null && vision.HasLineOfSight && vision.VisibleTarget != null)
+            bool canSeeTarget = vision != null && vision.HasLineOfSight && vision.VisibleTarget != null;
+            bool heardNoise = false;
+
+            if (canSeeTarget)
             {
                 memory?.RememberSeen(vision.VisibleTarget.position);
             }
@@ -60,10 +64,26 @@ namespace TacticalEcho.AI.Brain
             if (hearing != null && hearing.TryConsumeNoise(out NoiseEventData noise))
             {
                 memory?.RememberHeard(noise.Position, noise.Intensity);
+                heardNoise = true;
             }
 
             memory?.TickMemory();
+            UpdatePerceptionDrivenState(canSeeTarget, heardNoise);
             stateMachine.Tick(Time.deltaTime);
+        }
+
+        public void ConfigurePerception(VisionSensor newVision, HearingSensor newHearing, EnemyMemory newMemory)
+        {
+            vision = newVision;
+            hearing = newHearing;
+            memory = newMemory;
+        }
+
+        public void ConfigureExecution(EnemyMovement newMovement, WeaponController newWeapon, Health newHealth)
+        {
+            movement = newMovement;
+            weapon = newWeapon;
+            health = newHealth;
         }
 
         public bool ChangeState(EnemyStateId nextState)
@@ -91,6 +111,41 @@ namespace TacticalEcho.AI.Brain
                 CoverAvailable = coverAvailable,
                 PathAvailable = movement != null
             };
+        }
+
+        private void UpdatePerceptionDrivenState(bool canSeeTarget, bool heardNoise)
+        {
+            if (health != null && !health.IsAlive)
+            {
+                ChangeState(EnemyStateId.Dead);
+                return;
+            }
+
+            if (canSeeTarget)
+            {
+                ChangeState(EnemyStateId.Combat);
+                return;
+            }
+
+            if (heardNoise)
+            {
+                ChangeState(EnemyStateId.Investigate);
+                return;
+            }
+
+            if (memory != null && memory.HasKnownPosition)
+            {
+                if (CurrentState == EnemyStateId.Combat || CurrentState == EnemyStateId.Investigate)
+                {
+                    ChangeState(EnemyStateId.Search);
+                }
+                return;
+            }
+
+            if (CurrentState != EnemyStateId.Patrol)
+            {
+                ChangeState(EnemyStateId.Patrol);
+            }
         }
     }
 }
