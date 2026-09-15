@@ -183,9 +183,18 @@ namespace TacticalEcho.Character.Player
                     ? aimOrigin.forward
                     : transform.forward;
 
-            if (weapon.TryFire(origin, direction))
+            float movement01 = sprintSpeed > 0f
+                ? Mathf.Clamp01(PlanarVelocity.magnitude / sprintSpeed)
+                : 0f;
+
+            if (weapon.TryFire(origin, direction, movement01, IsAiming))
             {
                 animationController?.PlayFire();
+
+                if (playerCamera != null && weapon.Definition != null)
+                {
+                    playerCamera.AddRecoil(weapon.Definition.Recoil);
+                }
             }
         }
 
