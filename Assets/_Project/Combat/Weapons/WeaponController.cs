@@ -2,11 +2,14 @@ using System;
 using TacticalEcho.Combat.Damage;
 using TacticalEcho.Core.Events;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace TacticalEcho.Combat.Weapons
 {
     public sealed class WeaponController : MonoBehaviour
     {
+        private const string DefaultAudioProfileResourcePath = "Combat/RifleAudioProfile";
+
         [Header("Configuration")]
         [SerializeField] private WeaponDefinition definition;
 
@@ -15,10 +18,19 @@ namespace TacticalEcho.Combat.Weapons
         [SerializeField] private LayerMask hitMask = ~0;
 
         [Header("Shot Feedback")]
+        [SerializeField] private WeaponAudioProfile audioProfile;
         [SerializeField] private AudioClip fireAudioClip;
-        [SerializeField, Range(0f, 1f)] private float fireAudioVolume = 0.9f;
+        [SerializeField, Range(0f, 1f)] private float fireAudioVolume = 0.95f;
         [SerializeField] private GameObject hitImpactPrefab;
         [SerializeField, Min(0.05f)] private float hitImpactLifetime = 2f;
+
+        [Header("Tracer")]
+        [SerializeField] private bool enableTracer = true;
+        [SerializeField, Range(4, 24)] private int tracerPoolSize = 12;
+        [SerializeField, Min(0.01f)] private float tracerDuration = 0.07f;
+        [SerializeField, Min(0.001f)] private float tracerWidth = 0.012f;
+        [SerializeField] private Color tracerStartColor = new(1f, 0.9f, 0.45f, 1f);
+        [SerializeField] private Color tracerEndColor = new(1f, 0.45f, 0.15f, 0.15f);
 
         [Header("Fallback Hit Impact")]
         [SerializeField] private bool enableProceduralHitImpact = true;
@@ -29,9 +41,9 @@ namespace TacticalEcho.Combat.Weapons
 
         [Header("Muzzle Flash")]
         [SerializeField] private bool enableMuzzleFlash = true;
-        [SerializeField, Min(0.01f)] private float muzzleFlashDuration = 0.035f;
-        [SerializeField, Min(0f)] private float muzzleFlashIntensity = 3f;
-        [SerializeField, Min(0f)] private float muzzleFlashRange = 2.5f;
+        [SerializeField, Min(0.01f)] private float muzzleFlashDuration = 0.04f;
+        [SerializeField, Min(0f)] private float muzzleFlashIntensity = 4f;
+        [SerializeField, Min(0f)] private float muzzleFlashRange = 3f;
 
         public event Action Fired;
         public event Action<RaycastHit> HitResolved;
@@ -54,6 +66,10 @@ namespace TacticalEcho.Combat.Weapons
         private int nextImpactIndex;
         private Material proceduralImpactMaterial;
 
+        private ShotTracer[] tracerPool;
+        private int nextTracerIndex;
+        private Material tracerMaterial;
+
         private sealed class ProceduralImpactMarker
         {
             public GameObject GameObject;
@@ -61,9 +77,17 @@ namespace TacticalEcho.Combat.Weapons
             public float EndTime;
         }
 
+        private sealed class ShotTracer
+        {
+            public GameObject GameObject;
+            public LineRenderer Line;
+            public float EndTime;
+        }
+
         private void Awake()
         {
             InitializeRuntime();
+            ResolveAudioProfile();
             EnsureShotFeedbackComponents();
         }
 
@@ -82,6 +106,7 @@ namespace TacticalEcho.Combat.Weapons
             }
 
             UpdateProceduralImpacts();
+            UpdateTracers();
         }
 
         private void OnDisable()
@@ -96,20 +121,17 @@ namespace TacticalEcho.Combat.Weapons
 
         private void OnDestroy()
         {
-            if (impactPool != null)
-            {
-                foreach (ProceduralImpactMarker marker in impactPool)
-                {
-                    if (marker?.GameObject != null)
-                    {
-                        Destroy(marker.GameObject);
-                    }
-                }
-            }
+            DestroyImpactPool();
+            DestroyTracerPool();
 
             if (proceduralImpactMaterial != null)
             {
                 Destroy(proceduralImpactMaterial);
+            }
+
+            if (tracerMaterial != null)
+            {
+                Destroy(tracerMaterial);
             }
         }
 
@@ -118,6 +140,7 @@ namespace TacticalEcho.Combat.Weapons
             definition = weaponDefinition;
             muzzle = muzzleTransform;
             InitializeRuntime();
+            ResolveAudioProfile();
             EnsureShotFeedbackComponents();
         }
 
@@ -138,6 +161,7 @@ namespace TacticalEcho.Combat.Weapons
 
             float spreadDegrees = Runtime.GetEffectiveSpread(movement01, isAiming);
             Vector3 shotDirection = ApplySpread(forward, spreadDegrees);
+            Vector3 shotEnd = origin + shotDirection * definition.Range;
 
             if (Physics.Raycast(
                     origin,
@@ -147,6 +171,8 @@ namespace TacticalEcho.Combat.Weapons
                     hitMask,
                     QueryTriggerInteraction.Ignore))
             {
+                shotEnd = hit.point;
+
                 DamageInfo damageInfo = new(
                     definition.Damage,
                     hit.point,
@@ -163,6 +189,7 @@ namespace TacticalEcho.Combat.Weapons
                 }
             }
 
+            ShowTracer(muzzle != null ? muzzle.position : origin, shotEnd);
             PlayShotFeedback();
             EmitGunNoise();
             AmmoChanged?.Invoke(Runtime.MagazineAmmo, Runtime.ReserveAmmo);
@@ -177,6 +204,7 @@ namespace TacticalEcho.Combat.Weapons
                 return false;
             }
 
+            PlayReloadClip(audioProfile != null ? audioProfile.ReloadStartClip : null);
             ReloadStarted?.Invoke();
             return true;
         }
@@ -188,6 +216,7 @@ namespace TacticalEcho.Combat.Weapons
                 return;
             }
 
+            PlayReloadClip(audioProfile != null ? audioProfile.ReloadCompleteClip : null);
             AmmoChanged?.Invoke(Runtime.MagazineAmmo, Runtime.ReserveAmmo);
             ReloadCompleted?.Invoke();
         }
@@ -206,22 +235,38 @@ namespace TacticalEcho.Combat.Weapons
             }
         }
 
+        private void ResolveAudioProfile()
+        {
+            if (audioProfile == null)
+            {
+                audioProfile = Resources.Load<WeaponAudioProfile>(DefaultAudioProfileResourcePath);
+            }
+        }
+
         private void EnsureShotFeedbackComponents()
         {
             audioSource = GetComponent<AudioSource>();
             if (audioSource == null)
             {
                 audioSource = gameObject.AddComponent<AudioSource>();
-                audioSource.playOnAwake = false;
-                audioSource.spatialBlend = 1f;
-                audioSource.rolloffMode = AudioRolloffMode.Linear;
-                audioSource.minDistance = 2f;
-                audioSource.maxDistance = 45f;
             }
+
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 0.15f;
+            audioSource.dopplerLevel = 0f;
+            audioSource.rolloffMode = AudioRolloffMode.Linear;
+            audioSource.minDistance = 1f;
+            audioSource.maxDistance = 55f;
+            audioSource.volume = 1f;
 
             if (enableProceduralHitImpact && hitImpactPrefab == null)
             {
                 EnsureProceduralImpactPool();
+            }
+
+            if (enableTracer)
+            {
+                EnsureTracerPool();
             }
 
             if (!enableMuzzleFlash || muzzle == null)
@@ -250,17 +295,181 @@ namespace TacticalEcho.Combat.Weapons
 
         private void PlayShotFeedback()
         {
-            if (fireAudioClip != null && audioSource != null)
+            AudioClip clip = audioProfile != null ? audioProfile.GetRandomFireClip() : null;
+            if (clip == null)
             {
-                audioSource.PlayOneShot(fireAudioClip, fireAudioVolume);
+                clip = fireAudioClip;
+            }
+
+            if (clip != null && audioSource != null)
+            {
+                if (clip.loadState == AudioDataLoadState.Unloaded)
+                {
+                    clip.LoadAudioData();
+                }
+
+                audioSource.PlayOneShot(clip, fireAudioVolume);
             }
 
             if (enableMuzzleFlash && muzzleFlashLight != null)
             {
-                muzzleFlashLight.intensity = muzzleFlashIntensity * UnityEngine.Random.Range(0.85f, 1.15f);
+                muzzleFlashLight.intensity = muzzleFlashIntensity * UnityEngine.Random.Range(0.85f, 1.2f);
                 muzzleFlashLight.enabled = true;
                 muzzleFlashEndTime = Time.time + muzzleFlashDuration;
             }
+        }
+
+        private void PlayReloadClip(AudioClip clip)
+        {
+            if (clip == null || audioSource == null)
+            {
+                return;
+            }
+
+            if (clip.loadState == AudioDataLoadState.Unloaded)
+            {
+                clip.LoadAudioData();
+            }
+
+            audioSource.PlayOneShot(clip, Mathf.Clamp01(fireAudioVolume * 0.8f));
+        }
+
+        private void ShowTracer(Vector3 start, Vector3 end)
+        {
+            if (!enableTracer)
+            {
+                return;
+            }
+
+            EnsureTracerPool();
+            if (tracerPool == null || tracerPool.Length == 0)
+            {
+                return;
+            }
+
+            ShotTracer tracer = tracerPool[nextTracerIndex];
+            nextTracerIndex = (nextTracerIndex + 1) % tracerPool.Length;
+
+            tracer.Line.SetPosition(0, start);
+            tracer.Line.SetPosition(1, end);
+            tracer.Line.startWidth = tracerWidth;
+            tracer.Line.endWidth = tracerWidth * 0.45f;
+            tracer.Line.startColor = tracerStartColor;
+            tracer.Line.endColor = tracerEndColor;
+            tracer.EndTime = Time.time + tracerDuration;
+            tracer.GameObject.SetActive(true);
+        }
+
+        private void EnsureTracerPool()
+        {
+            int targetSize = Mathf.Clamp(tracerPoolSize, 4, 24);
+            if (tracerPool != null && tracerPool.Length == targetSize)
+            {
+                return;
+            }
+
+            DestroyTracerPool();
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader == null)
+            {
+                shader = Shader.Find("Sprites/Default");
+            }
+
+            if (shader == null)
+            {
+                tracerPool = Array.Empty<ShotTracer>();
+                return;
+            }
+
+            if (tracerMaterial == null || tracerMaterial.shader != shader)
+            {
+                if (tracerMaterial != null)
+                {
+                    Destroy(tracerMaterial);
+                }
+
+                tracerMaterial = new Material(shader)
+                {
+                    name = "Runtime Rifle Tracer"
+                };
+            }
+
+            tracerPool = new ShotTracer[targetSize];
+            nextTracerIndex = 0;
+
+            for (int i = 0; i < targetSize; i++)
+            {
+                GameObject tracerObject = new($"RuntimeTracer_{i:00}");
+                tracerObject.transform.SetParent(transform, false);
+
+                LineRenderer line = tracerObject.AddComponent<LineRenderer>();
+                line.useWorldSpace = true;
+                line.positionCount = 2;
+                line.numCapVertices = 2;
+                line.alignment = LineAlignment.View;
+                line.textureMode = LineTextureMode.Stretch;
+                line.shadowCastingMode = ShadowCastingMode.Off;
+                line.receiveShadows = false;
+                line.sharedMaterial = tracerMaterial;
+
+                tracerObject.SetActive(false);
+                tracerPool[i] = new ShotTracer
+                {
+                    GameObject = tracerObject,
+                    Line = line,
+                    EndTime = 0f
+                };
+            }
+        }
+
+        private void UpdateTracers()
+        {
+            if (tracerPool == null)
+            {
+                return;
+            }
+
+            float now = Time.time;
+            foreach (ShotTracer tracer in tracerPool)
+            {
+                if (tracer == null || tracer.GameObject == null || !tracer.GameObject.activeSelf)
+                {
+                    continue;
+                }
+
+                if (now >= tracer.EndTime)
+                {
+                    tracer.GameObject.SetActive(false);
+                    continue;
+                }
+
+                float normalized = Mathf.Clamp01((tracer.EndTime - now) / tracerDuration);
+                Color start = tracerStartColor;
+                Color end = tracerEndColor;
+                start.a *= normalized;
+                end.a *= normalized;
+                tracer.Line.startColor = start;
+                tracer.Line.endColor = end;
+            }
+        }
+
+        private void DestroyTracerPool()
+        {
+            if (tracerPool == null)
+            {
+                return;
+            }
+
+            foreach (ShotTracer tracer in tracerPool)
+            {
+                if (tracer?.GameObject != null)
+                {
+                    Destroy(tracer.GameObject);
+                }
+            }
+
+            tracerPool = null;
         }
 
         private void SpawnHitImpact(in RaycastHit hit)
@@ -302,16 +511,7 @@ namespace TacticalEcho.Combat.Weapons
                 return;
             }
 
-            if (impactPool != null)
-            {
-                foreach (ProceduralImpactMarker oldMarker in impactPool)
-                {
-                    if (oldMarker?.GameObject != null)
-                    {
-                        Destroy(oldMarker.GameObject);
-                    }
-                }
-            }
+            DestroyImpactPool();
 
             Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
             if (shader == null)
@@ -365,7 +565,7 @@ namespace TacticalEcho.Combat.Weapons
                 if (renderer != null)
                 {
                     renderer.sharedMaterial = proceduralImpactMaterial;
-                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    renderer.shadowCastingMode = ShadowCastingMode.Off;
                     renderer.receiveShadows = false;
                 }
 
@@ -377,6 +577,24 @@ namespace TacticalEcho.Combat.Weapons
                     EndTime = 0f
                 };
             }
+        }
+
+        private void DestroyImpactPool()
+        {
+            if (impactPool == null)
+            {
+                return;
+            }
+
+            foreach (ProceduralImpactMarker marker in impactPool)
+            {
+                if (marker?.GameObject != null)
+                {
+                    Destroy(marker.GameObject);
+                }
+            }
+
+            impactPool = null;
         }
 
         private void UpdateProceduralImpacts()
