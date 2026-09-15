@@ -40,14 +40,18 @@ namespace TacticalEcho.CameraSystem
         [Header("Recoil")]
         [SerializeField, Min(0f)] private float recoilPitchDegrees = 0.75f;
         [SerializeField, Min(0f)] private float recoilYawDegrees = 0.28f;
-        [SerializeField, Min(0.01f)] private float recoilReturnSharpness = 12f;
-        [SerializeField, Min(0.01f)] private float recoilKickSharpness = 28f;
+        [SerializeField, Min(0.01f)] private float recoilReturnSharpness = 9f;
+        [SerializeField, Min(0.01f)] private float recoilKickSharpness = 32f;
+        [SerializeField, Min(0.1f)] private float recoilVisibilityMultiplier = 1.65f;
 
         [Header("Crosshair")]
-        [SerializeField] private bool showCrosshairOnlyWhileAiming = true;
         [SerializeField, Min(1f)] private float crosshairLength = 8f;
-        [SerializeField, Min(0f)] private float crosshairGap = 5f;
+        [SerializeField, Min(0f)] private float exploreCrosshairGap = 9f;
+        [SerializeField, Min(0f)] private float aimCrosshairGap = 4f;
         [SerializeField, Min(1f)] private float crosshairThickness = 2f;
+        [SerializeField, Min(0f)] private float crosshairKickPerShot = 7f;
+        [SerializeField, Min(0.01f)] private float crosshairKickRecovery = 24f;
+        [SerializeField, Min(0f)] private float maxCrosshairKick = 20f;
         [SerializeField, Min(0.1f)] private float crosshairMaxDistance = 150f;
         [SerializeField] private LayerMask crosshairMask = ~0;
         [SerializeField] private Color crosshairColor = Color.white;
@@ -68,6 +72,7 @@ namespace TacticalEcho.CameraSystem
 
         private Vector2 recoilTarget;
         private Vector2 recoilCurrent;
+        private float crosshairKick;
 
         private Canvas crosshairCanvas;
         private Image[] crosshairParts;
@@ -139,8 +144,10 @@ namespace TacticalEcho.CameraSystem
                 return;
             }
 
-            recoilTarget.y += recoilPitchDegrees * strength;
-            recoilTarget.x += UnityEngine.Random.Range(-recoilYawDegrees, recoilYawDegrees) * strength;
+            float visibleStrength = Mathf.Max(0.5f, strength) * recoilVisibilityMultiplier;
+            recoilTarget.y += recoilPitchDegrees * visibleStrength;
+            recoilTarget.x += UnityEngine.Random.Range(-recoilYawDegrees, recoilYawDegrees) * visibleStrength;
+            crosshairKick = Mathf.Min(maxCrosshairKick, crosshairKick + crosshairKickPerShot * visibleStrength);
         }
 
         public void ShowHitMarker()
@@ -197,6 +204,7 @@ namespace TacticalEcho.CameraSystem
 
             float returnT = 1f - Mathf.Exp(-recoilReturnSharpness * Time.unscaledDeltaTime);
             recoilTarget = Vector2.Lerp(recoilTarget, Vector2.zero, returnT);
+            crosshairKick = Mathf.MoveTowards(crosshairKick, 0f, crosshairKickRecovery * Time.unscaledDeltaTime);
         }
 
         private void UpdateTransform()
@@ -234,16 +242,13 @@ namespace TacticalEcho.CameraSystem
                 return;
             }
 
-            bool visible = !showCrosshairOnlyWhileAiming || Mode == CameraMode.Aim;
-            if (crosshairCanvas.gameObject.activeSelf != visible)
+            // Always visible: hip-fire still needs a clear center point.
+            if (!crosshairCanvas.gameObject.activeSelf)
             {
-                crosshairCanvas.gameObject.SetActive(visible);
+                crosshairCanvas.gameObject.SetActive(true);
             }
 
-            if (!visible)
-            {
-                return;
-            }
+            UpdateCrosshairLayout();
 
             bool isDamageableTarget = false;
             if (Physics.Raycast(
@@ -265,6 +270,34 @@ namespace TacticalEcho.CameraSystem
                 {
                     part.color = color;
                 }
+            }
+        }
+
+        private void UpdateCrosshairLayout()
+        {
+            if (crosshairParts == null || crosshairParts.Length < 5)
+            {
+                return;
+            }
+
+            float baseGap = Mode == CameraMode.Aim ? aimCrosshairGap : exploreCrosshairGap;
+            float recoilGap = recoilCurrent.magnitude * 2f;
+            float gap = baseGap + crosshairKick + recoilGap;
+            float halfLength = crosshairLength * 0.5f;
+            float offset = gap + halfLength;
+
+            SetCrosshairPosition(crosshairParts[0], new Vector2(-offset, 0f));
+            SetCrosshairPosition(crosshairParts[1], new Vector2(offset, 0f));
+            SetCrosshairPosition(crosshairParts[2], new Vector2(0f, offset));
+            SetCrosshairPosition(crosshairParts[3], new Vector2(0f, -offset));
+            SetCrosshairPosition(crosshairParts[4], Vector2.zero);
+        }
+
+        private static void SetCrosshairPosition(Image image, Vector2 position)
+        {
+            if (image != null)
+            {
+                image.rectTransform.anchoredPosition = position;
             }
         }
 
@@ -304,14 +337,15 @@ namespace TacticalEcho.CameraSystem
             scaler.matchWidthOrHeight = 0.5f;
 
             crosshairParts = new Image[5];
-            crosshairParts[0] = CreateCrosshairPart(canvasObject.transform, "Left", new Vector2(crosshairLength, crosshairThickness), new Vector2(-(crosshairGap + crosshairLength * 0.5f), 0f));
-            crosshairParts[1] = CreateCrosshairPart(canvasObject.transform, "Right", new Vector2(crosshairLength, crosshairThickness), new Vector2(crosshairGap + crosshairLength * 0.5f, 0f));
-            crosshairParts[2] = CreateCrosshairPart(canvasObject.transform, "Top", new Vector2(crosshairThickness, crosshairLength), new Vector2(0f, crosshairGap + crosshairLength * 0.5f));
-            crosshairParts[3] = CreateCrosshairPart(canvasObject.transform, "Bottom", new Vector2(crosshairThickness, crosshairLength), new Vector2(0f, -(crosshairGap + crosshairLength * 0.5f)));
+            crosshairParts[0] = CreateCrosshairPart(canvasObject.transform, "Left", new Vector2(crosshairLength, crosshairThickness), Vector2.zero);
+            crosshairParts[1] = CreateCrosshairPart(canvasObject.transform, "Right", new Vector2(crosshairLength, crosshairThickness), Vector2.zero);
+            crosshairParts[2] = CreateCrosshairPart(canvasObject.transform, "Top", new Vector2(crosshairThickness, crosshairLength), Vector2.zero);
+            crosshairParts[3] = CreateCrosshairPart(canvasObject.transform, "Bottom", new Vector2(crosshairThickness, crosshairLength), Vector2.zero);
             crosshairParts[4] = CreateCrosshairPart(canvasObject.transform, "Center", new Vector2(crosshairThickness + 1f, crosshairThickness + 1f), Vector2.zero);
 
             CreateHitMarker(canvasObject.transform);
-            crosshairCanvas.gameObject.SetActive(!showCrosshairOnlyWhileAiming || Mode == CameraMode.Aim);
+            UpdateCrosshairLayout();
+            crosshairCanvas.gameObject.SetActive(true);
         }
 
         private void CreateHitMarker(Transform parent)

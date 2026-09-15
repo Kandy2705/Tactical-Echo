@@ -14,14 +14,38 @@ namespace TacticalEcho.Character.Player
         [SerializeField] private InputActionReference fireAction;
         [SerializeField] private InputActionReference reloadAction;
         [SerializeField] private InputActionReference aimAction;
+        [Tooltip("When no Aim InputAction is assigned, right click toggles aim so a trackpad/mouse can fire without holding two buttons at once.")]
+        [SerializeField] private bool toggleMouseAim = true;
+
+        private bool mouseAimToggled;
 
         public Vector2 Move => ReadVector2(moveAction);
         public Vector2 Look => ReadVector2(lookAction);
         public bool IsSprinting => IsPressed(sprintAction);
-        public bool IsFiring => IsPressed(fireAction) || (fireAction == null && Mouse.current != null && Mouse.current.leftButton.isPressed);
-        public bool FirePressedThisFrame => WasPressedThisFrame(fireAction) || (fireAction == null && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame);
-        public bool ReloadPressedThisFrame => WasPressedThisFrame(reloadAction) || (reloadAction == null && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame);
-        public bool IsAiming => IsPressed(aimAction) || (aimAction == null && Mouse.current != null && Mouse.current.rightButton.isPressed);
+
+        // Mouse fallback is intentionally checked even when an InputActionReference exists.
+        // This keeps left-click firing reliable while right-click aim is active.
+        public bool IsFiring => IsPressed(fireAction) || (Mouse.current != null && Mouse.current.leftButton.isPressed);
+        public bool FirePressedThisFrame => WasPressedThisFrame(fireAction) || (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame);
+        public bool ReloadPressedThisFrame => WasPressedThisFrame(reloadAction) || (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame);
+
+        public bool IsAiming
+        {
+            get
+            {
+                if (aimAction != null)
+                {
+                    return IsPressed(aimAction);
+                }
+
+                if (Mouse.current == null)
+                {
+                    return false;
+                }
+
+                return toggleMouseAim ? mouseAimToggled : Mouse.current.rightButton.isPressed;
+            }
+        }
 
         public bool IsPointerLook
         {
@@ -37,6 +61,14 @@ namespace TacticalEcho.Character.Player
             }
         }
 
+        private void Update()
+        {
+            if (aimAction == null && toggleMouseAim && Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+            {
+                mouseAimToggled = !mouseAimToggled;
+            }
+        }
+
         private void OnEnable()
         {
             SetEnabled(moveAction, true);
@@ -49,6 +81,7 @@ namespace TacticalEcho.Character.Player
 
         private void OnDisable()
         {
+            mouseAimToggled = false;
             SetEnabled(moveAction, false);
             SetEnabled(lookAction, false);
             SetEnabled(sprintAction, false);
@@ -71,6 +104,7 @@ namespace TacticalEcho.Character.Player
             fireAction = fire;
             reloadAction = reload;
             aimAction = aim;
+            mouseAimToggled = false;
         }
 
         private static Vector2 ReadVector2(InputActionReference actionReference)
