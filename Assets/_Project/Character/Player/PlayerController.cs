@@ -1,6 +1,7 @@
 using TacticalEcho.AnimationSystem.Runtime;
 using TacticalEcho.CameraSystem;
 using TacticalEcho.Combat.Weapons;
+using TacticalEcho.UI;
 using UnityEngine;
 
 namespace TacticalEcho.Character.Player
@@ -24,6 +25,8 @@ namespace TacticalEcho.Character.Player
         [SerializeField, Min(0f)] private float groundedStickForce = 2f;
 
         private CharacterController characterController;
+        private PlayerCombatHud combatHud;
+        private WeaponController subscribedWeapon;
         private float verticalVelocity;
         private Vector2 currentMoveInput;
 
@@ -35,6 +38,22 @@ namespace TacticalEcho.Character.Player
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();
+            combatHud = GetComponent<PlayerCombatHud>();
+            if (combatHud == null)
+            {
+                combatHud = gameObject.AddComponent<PlayerCombatHud>();
+            }
+        }
+
+        private void OnEnable()
+        {
+            BindWeaponEvents();
+            combatHud?.Configure(weapon);
+        }
+
+        private void OnDisable()
+        {
+            UnbindWeaponEvents();
         }
 
         private void Update()
@@ -58,20 +77,62 @@ namespace TacticalEcho.Character.Player
             PlayerAnimationController newAnimationController)
         {
             input = inputReader;
-            weapon = weaponController;
+            ConfigureWeapon(weaponController);
             aimOrigin = newAimOrigin;
             animationController = newAnimationController;
         }
 
         public void ConfigureWeapon(WeaponController weaponController)
         {
+            if (weapon == weaponController)
+            {
+                combatHud?.Configure(weapon);
+                return;
+            }
+
+            UnbindWeaponEvents();
             weapon = weaponController;
+
+            if (isActiveAndEnabled)
+            {
+                BindWeaponEvents();
+            }
+
+            combatHud?.Configure(weapon);
         }
 
         public void ConfigureCamera(PlayerCameraController cameraController, Transform orientation)
         {
             playerCamera = cameraController;
             cameraOrientation = orientation;
+        }
+
+        private void BindWeaponEvents()
+        {
+            if (weapon == null || subscribedWeapon == weapon)
+            {
+                return;
+            }
+
+            UnbindWeaponEvents();
+            subscribedWeapon = weapon;
+            subscribedWeapon.DamageApplied += HandleDamageApplied;
+        }
+
+        private void UnbindWeaponEvents()
+        {
+            if (subscribedWeapon == null)
+            {
+                return;
+            }
+
+            subscribedWeapon.DamageApplied -= HandleDamageApplied;
+            subscribedWeapon = null;
+        }
+
+        private void HandleDamageApplied()
+        {
+            playerCamera?.ShowHitMarker();
         }
 
         private void UpdateMovement()
