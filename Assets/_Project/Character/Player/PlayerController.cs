@@ -1,5 +1,6 @@
 using TacticalEcho.AnimationSystem.Runtime;
 using TacticalEcho.CameraSystem;
+using TacticalEcho.Combat.Damage;
 using TacticalEcho.Combat.Weapons;
 using TacticalEcho.UI;
 using UnityEngine;
@@ -122,6 +123,7 @@ namespace TacticalEcho.Character.Player
             UnbindWeaponEvents();
             subscribedWeapon = weapon;
             subscribedWeapon.DamageApplied += HandleDamageApplied;
+            subscribedWeapon.DamageFeedbackResolved += HandleDamageFeedback;
         }
 
         private void UnbindWeaponEvents()
@@ -132,12 +134,18 @@ namespace TacticalEcho.Character.Player
             }
 
             subscribedWeapon.DamageApplied -= HandleDamageApplied;
+            subscribedWeapon.DamageFeedbackResolved -= HandleDamageFeedback;
             subscribedWeapon = null;
         }
 
         private void HandleDamageApplied()
         {
             playerCamera?.ShowHitMarker();
+        }
+
+        private static void HandleDamageFeedback(DamageFeedback feedback)
+        {
+            FloatingDamageNumberSystem.Show(feedback);
         }
 
         private void UpdateMovement()
@@ -250,9 +258,6 @@ namespace TacticalEcho.Character.Player
                     ? aimOrigin.forward
                     : transform.forward;
 
-            // Hip-fire still uses the fixed crosshair/camera ray. Before a real shot is
-            // consumed, rotate the character toward that same direction so the pose,
-            // muzzle feedback and fire animation agree with where the shot actually goes.
             if (weapon.Runtime != null && weapon.Runtime.CanFire(Time.time))
             {
                 FaceShotDirection(direction);

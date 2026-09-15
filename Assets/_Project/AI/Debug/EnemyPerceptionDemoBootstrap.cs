@@ -3,6 +3,7 @@ using TacticalEcho.AI.Memory;
 using TacticalEcho.AI.Perception;
 using TacticalEcho.AI.States;
 using TacticalEcho.Character.Player;
+using TacticalEcho.Combat.Damage;
 using TacticalEcho.Combat.Health;
 using TacticalEcho.Combat.Weapons;
 using TMPro;
@@ -59,18 +60,14 @@ namespace TacticalEcho.AI.Debugging
             visualClone.transform.localRotation = Quaternion.identity;
             visualClone.transform.localScale = Vector3.one;
 
-            // The clone only needs the rifle visually. Player input never drives this copy.
             foreach (WeaponController clonedWeapon in visualClone.GetComponentsInChildren<WeaponController>(true))
             {
                 clonedWeapon.enabled = false;
             }
 
-            CapsuleCollider bodyCollider = enemy.AddComponent<CapsuleCollider>();
-            bodyCollider.height = 1.7f;
-            bodyCollider.radius = 0.31f;
-            bodyCollider.center = new Vector3(0f, 0.85f, 0f);
-
             Health health = enemy.AddComponent<Health>();
+            CreateMeshAlignedHitZones(visualClone, enemy);
+
             HearingSensor hearing = enemy.AddComponent<HearingSensor>();
             EnemyMemory memory = enemy.AddComponent<EnemyMemory>();
 
@@ -94,9 +91,107 @@ namespace TacticalEcho.AI.Debugging
             view.Configure(brain, health, statusText, labelRoot);
 
             Debug.Log(
-                "[AI Perception Demo] Spawned Enemy_PerceptionTest_Kaia. " +
-                "It starts facing away. Fire within rifle noise range: PATROL -> INVESTIGATE; " +
-                "after turning and seeing the Player: -> COMBAT. Shoot it to validate the damage pipeline too.");
+                "[AI Perception Demo] Spawned Enemy_PerceptionTest_Kaia with mesh-aligned humanoid hit zones. " +
+                "Head 2.0x, torso 1.0x, arms 0.75x, legs 0.65x.");
+        }
+
+        private static void CreateMeshAlignedHitZones(GameObject visualClone, GameObject enemyRoot)
+        {
+            Animator animator = visualClone.GetComponentInChildren<Animator>(true);
+            if (animator == null || !animator.isHuman)
+            {
+                Debug.LogWarning("[AI Perception Demo] Humanoid Animator not found; using fallback body collider.");
+                CapsuleCollider fallback = enemyRoot.AddComponent<CapsuleCollider>();
+                fallback.height = 1.7f;
+                fallback.radius = 0.31f;
+                fallback.center = new Vector3(0f, 0.85f, 0f);
+                DamageHitZone zone = enemyRoot.AddComponent<DamageHitZone>();
+                zone.Configure(DamageHitZoneType.Torso, 1f);
+                return;
+            }
+
+            CreateSphereZone(animator.GetBoneTransform(HumanBodyBones.Head), "HitZone_Head", DamageHitZoneType.Head, 2f, 0.13f);
+
+            CreateCapsuleZone(
+                animator.GetBoneTransform(HumanBodyBones.Chest),
+                animator.GetBoneTransform(HumanBodyBones.Hips),
+                "HitZone_Torso",
+                DamageHitZoneType.Torso,
+                1f,
+                0.22f);
+
+            CreateCapsuleZone(animator.GetBoneTransform(HumanBodyBones.LeftUpperArm), animator.GetBoneTransform(HumanBodyBones.LeftLowerArm), "HitZone_LeftUpperArm", DamageHitZoneType.Arm, 0.75f, 0.085f);
+            CreateCapsuleZone(animator.GetBoneTransform(HumanBodyBones.LeftLowerArm), animator.GetBoneTransform(HumanBodyBones.LeftHand), "HitZone_LeftLowerArm", DamageHitZoneType.Arm, 0.75f, 0.075f);
+            CreateCapsuleZone(animator.GetBoneTransform(HumanBodyBones.RightUpperArm), animator.GetBoneTransform(HumanBodyBones.RightLowerArm), "HitZone_RightUpperArm", DamageHitZoneType.Arm, 0.75f, 0.085f);
+            CreateCapsuleZone(animator.GetBoneTransform(HumanBodyBones.RightLowerArm), animator.GetBoneTransform(HumanBodyBones.RightHand), "HitZone_RightLowerArm", DamageHitZoneType.Arm, 0.75f, 0.075f);
+
+            CreateCapsuleZone(animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg), animator.GetBoneTransform(HumanBodyBones.LeftLowerLeg), "HitZone_LeftThigh", DamageHitZoneType.Leg, 0.65f, 0.11f);
+            CreateCapsuleZone(animator.GetBoneTransform(HumanBodyBones.LeftLowerLeg), animator.GetBoneTransform(HumanBodyBones.LeftFoot), "HitZone_LeftCalf", DamageHitZoneType.Leg, 0.65f, 0.09f);
+            CreateCapsuleZone(animator.GetBoneTransform(HumanBodyBones.RightUpperLeg), animator.GetBoneTransform(HumanBodyBones.RightLowerLeg), "HitZone_RightThigh", DamageHitZoneType.Leg, 0.65f, 0.11f);
+            CreateCapsuleZone(animator.GetBoneTransform(HumanBodyBones.RightLowerLeg), animator.GetBoneTransform(HumanBodyBones.RightFoot), "HitZone_RightCalf", DamageHitZoneType.Leg, 0.65f, 0.09f);
+        }
+
+        private static void CreateSphereZone(
+            Transform bone,
+            string name,
+            DamageHitZoneType zoneType,
+            float multiplier,
+            float radius)
+        {
+            if (bone == null)
+            {
+                return;
+            }
+
+            GameObject zoneObject = new(name);
+            zoneObject.hideFlags = HideFlags.HideInHierarchy | HideFlags.DontSave;
+            zoneObject.transform.SetParent(bone, false);
+            zoneObject.transform.localPosition = Vector3.zero;
+            zoneObject.transform.localRotation = Quaternion.identity;
+            zoneObject.transform.localScale = Vector3.one;
+
+            SphereCollider collider = zoneObject.AddComponent<SphereCollider>();
+            collider.radius = radius;
+
+            DamageHitZone zone = zoneObject.AddComponent<DamageHitZone>();
+            zone.Configure(zoneType, multiplier);
+        }
+
+        private static void CreateCapsuleZone(
+            Transform fromBone,
+            Transform toBone,
+            string name,
+            DamageHitZoneType zoneType,
+            float multiplier,
+            float radius)
+        {
+            if (fromBone == null || toBone == null)
+            {
+                return;
+            }
+
+            Vector3 endLocal = fromBone.InverseTransformPoint(toBone.position);
+            float distance = endLocal.magnitude;
+            if (distance <= 0.001f)
+            {
+                return;
+            }
+
+            GameObject zoneObject = new(name);
+            zoneObject.hideFlags = HideFlags.HideInHierarchy | HideFlags.DontSave;
+            zoneObject.transform.SetParent(fromBone, false);
+            zoneObject.transform.localPosition = endLocal * 0.5f;
+            zoneObject.transform.localRotation = Quaternion.FromToRotation(Vector3.up, endLocal.normalized);
+            zoneObject.transform.localScale = Vector3.one;
+
+            CapsuleCollider collider = zoneObject.AddComponent<CapsuleCollider>();
+            collider.direction = 1;
+            collider.radius = radius;
+            collider.height = Mathf.Max(radius * 2f, distance + radius * 1.5f);
+            collider.center = Vector3.zero;
+
+            DamageHitZone zone = zoneObject.AddComponent<DamageHitZone>();
+            zone.Configure(zoneType, multiplier);
         }
 
         private static Vector3 ResolveSpawnPosition(Transform player)
@@ -122,10 +217,7 @@ namespace TacticalEcho.AI.Debugging
             return desired;
         }
 
-        private static void CreateStatusLabel(
-            Transform parent,
-            out TMP_Text statusText,
-            out Transform labelRoot)
+        private static void CreateStatusLabel(Transform parent, out TMP_Text statusText, out Transform labelRoot)
         {
             GameObject canvasObject = new("AI_StatusCanvas", typeof(RectTransform));
             canvasObject.transform.SetParent(parent, false);
@@ -163,10 +255,6 @@ namespace TacticalEcho.AI.Debugging
         }
     }
 
-    /// <summary>
-    /// Makes the perception result immediately visible without implementing combat/navigation early.
-    /// Real sensing and memory still come from VisionSensor, HearingSensor and EnemyMemory.
-    /// </summary>
     public sealed class EnemyPerceptionDemoView : MonoBehaviour
     {
         [SerializeField, Min(0.01f)] private float turnSharpness = 8f;
@@ -179,11 +267,7 @@ namespace TacticalEcho.AI.Debugging
         private EnemyStateId previousState = (EnemyStateId)(-1);
         private int previousHealth = -1;
 
-        public void Configure(
-            EnemyBrain newBrain,
-            Health newHealth,
-            TMP_Text newStatusText,
-            Transform newLabelRoot)
+        public void Configure(EnemyBrain newBrain, Health newHealth, TMP_Text newStatusText, Transform newLabelRoot)
         {
             brain = newBrain;
             health = newHealth;
