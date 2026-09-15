@@ -53,6 +53,13 @@ namespace TacticalEcho.CameraSystem
         [SerializeField] private Color crosshairColor = Color.white;
         [SerializeField] private Color targetCrosshairColor = new(1f, 0.25f, 0.2f, 1f);
 
+        [Header("Hit Marker")]
+        [SerializeField, Min(0.03f)] private float hitMarkerDuration = 0.12f;
+        [SerializeField, Min(2f)] private float hitMarkerLength = 10f;
+        [SerializeField, Min(0f)] private float hitMarkerGap = 6f;
+        [SerializeField, Min(1f)] private float hitMarkerThickness = 2f;
+        [SerializeField] private Color hitMarkerColor = Color.white;
+
         private float yaw;
         private float pitch;
         private float shoulderSign = 1f;
@@ -64,6 +71,8 @@ namespace TacticalEcho.CameraSystem
 
         private Canvas crosshairCanvas;
         private Image[] crosshairParts;
+        private Image[] hitMarkerParts;
+        private float hitMarkerEndTime;
 
         public CameraMode Mode { get; private set; } = CameraMode.Explore;
         public Vector3 PlanarForward => Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
@@ -91,6 +100,7 @@ namespace TacticalEcho.CameraSystem
             if (target == null)
             {
                 UpdateCrosshair();
+                UpdateHitMarker();
                 return;
             }
 
@@ -98,6 +108,7 @@ namespace TacticalEcho.CameraSystem
             UpdateRecoil();
             UpdateTransform();
             UpdateCrosshair();
+            UpdateHitMarker();
         }
 
         private void OnDestroy()
@@ -130,6 +141,26 @@ namespace TacticalEcho.CameraSystem
 
             recoilTarget.y += recoilPitchDegrees * strength;
             recoilTarget.x += UnityEngine.Random.Range(-recoilYawDegrees, recoilYawDegrees) * strength;
+        }
+
+        public void ShowHitMarker()
+        {
+            if (hitMarkerParts == null)
+            {
+                return;
+            }
+
+            hitMarkerEndTime = Time.unscaledTime + hitMarkerDuration;
+            foreach (Image part in hitMarkerParts)
+            {
+                if (part == null)
+                {
+                    continue;
+                }
+
+                part.color = hitMarkerColor;
+                part.gameObject.SetActive(true);
+            }
         }
 
         public void SwitchShoulder()
@@ -237,6 +268,22 @@ namespace TacticalEcho.CameraSystem
             }
         }
 
+        private void UpdateHitMarker()
+        {
+            if (hitMarkerParts == null || Time.unscaledTime < hitMarkerEndTime)
+            {
+                return;
+            }
+
+            foreach (Image part in hitMarkerParts)
+            {
+                if (part != null && part.gameObject.activeSelf)
+                {
+                    part.gameObject.SetActive(false);
+                }
+            }
+        }
+
         private void CreateCrosshair()
         {
             if (crosshairCanvas != null)
@@ -263,7 +310,36 @@ namespace TacticalEcho.CameraSystem
             crosshairParts[3] = CreateCrosshairPart(canvasObject.transform, "Bottom", new Vector2(crosshairThickness, crosshairLength), new Vector2(0f, -(crosshairGap + crosshairLength * 0.5f)));
             crosshairParts[4] = CreateCrosshairPart(canvasObject.transform, "Center", new Vector2(crosshairThickness + 1f, crosshairThickness + 1f), Vector2.zero);
 
+            CreateHitMarker(canvasObject.transform);
             crosshairCanvas.gameObject.SetActive(!showCrosshairOnlyWhileAiming || Mode == CameraMode.Aim);
+        }
+
+        private void CreateHitMarker(Transform parent)
+        {
+            float offset = hitMarkerGap + hitMarkerLength * 0.5f;
+            hitMarkerParts = new Image[4];
+            hitMarkerParts[0] = CreateHitMarkerPart(parent, "HitTopLeft", new Vector2(-offset, offset), -45f);
+            hitMarkerParts[1] = CreateHitMarkerPart(parent, "HitTopRight", new Vector2(offset, offset), 45f);
+            hitMarkerParts[2] = CreateHitMarkerPart(parent, "HitBottomLeft", new Vector2(-offset, -offset), 45f);
+            hitMarkerParts[3] = CreateHitMarkerPart(parent, "HitBottomRight", new Vector2(offset, -offset), -45f);
+
+            foreach (Image part in hitMarkerParts)
+            {
+                part.gameObject.SetActive(false);
+            }
+        }
+
+        private Image CreateHitMarkerPart(Transform parent, string name, Vector2 anchoredPosition, float rotationZ)
+        {
+            Image image = CreateCrosshairPart(
+                parent,
+                name,
+                new Vector2(hitMarkerLength, hitMarkerThickness),
+                anchoredPosition);
+
+            image.rectTransform.localRotation = Quaternion.Euler(0f, 0f, rotationZ);
+            image.color = hitMarkerColor;
+            return image;
         }
 
         private static Image CreateCrosshairPart(Transform parent, string name, Vector2 size, Vector2 anchoredPosition)
