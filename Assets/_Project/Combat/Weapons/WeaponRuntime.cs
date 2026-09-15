@@ -10,6 +10,7 @@ namespace TacticalEcho.Combat.Weapons
             Definition = definition != null ? definition : throw new ArgumentNullException(nameof(definition));
             MagazineAmmo = definition.MagazineSize;
             ReserveAmmo = definition.StartingReserveAmmo;
+            CurrentSpread = definition.BaseSpread;
         }
 
         public WeaponDefinition Definition { get; }
@@ -18,6 +19,7 @@ namespace TacticalEcho.Combat.Weapons
         public bool IsReloading { get; private set; }
         public float NextAllowedFireTime { get; private set; }
         public float ReloadCompleteTime { get; private set; }
+        public float CurrentSpread { get; private set; }
         public float AmmoRatio => Definition.MagazineSize <= 0 ? 0f : (float)MagazineAmmo / Definition.MagazineSize;
         public bool IsMagazineEmpty => MagazineAmmo <= 0;
         public bool HasReserveAmmo => ReserveAmmo > 0;
@@ -36,7 +38,29 @@ namespace TacticalEcho.Combat.Weapons
 
             MagazineAmmo--;
             NextAllowedFireTime = currentTime + 1f / Mathf.Max(0.01f, Definition.FireRate);
+            CurrentSpread = Mathf.Min(Definition.MaxSpread, CurrentSpread + Definition.SpreadPerShot);
             return true;
+        }
+
+        public void RecoverSpread(float deltaTime)
+        {
+            CurrentSpread = Mathf.MoveTowards(
+                CurrentSpread,
+                Definition.BaseSpread,
+                Definition.SpreadRecoveryPerSecond * Mathf.Max(0f, deltaTime));
+        }
+
+        public float GetEffectiveSpread(float movement01, bool isAiming)
+        {
+            float spread = CurrentSpread + Definition.MovementSpread * Mathf.Clamp01(movement01);
+            spread = Mathf.Min(Definition.MaxSpread, spread);
+
+            if (isAiming)
+            {
+                spread *= Definition.AimSpreadMultiplier;
+            }
+
+            return Mathf.Max(0f, spread);
         }
 
         public bool TryBeginReload(float currentTime)
