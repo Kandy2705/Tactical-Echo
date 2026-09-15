@@ -19660,12 +19660,38 @@ MonoBehaviour:
   input: {fileID: 604206357}
   exploreOffset: {x: 0.65, y: 0.15, z: -3.6}
   aimOffset: {x: 0.8, y: 0.08, z: -2.2}
+  exploreFieldOfView: 60
+  aimFieldOfView: 45
+  aimBlendSharpness: 14
   mouseSensitivity: 0.12
   gamepadSensitivity: 120
   minPitch: -35
   maxPitch: 70
   followSharpness: 14
   rotationSharpness: 18
+  recoilPitchDegrees: 0.75
+  recoilYawDegrees: 0.28
+  recoilReturnSharpness: 12
+  recoilKickSharpness: 28
+  recoilVisibilityMultiplier: 1.65
+  crosshairLength: 8
+  exploreCrosshairGap: 9
+  aimCrosshairGap: 4
+  crosshairThickness: 2
+  crosshairKickPerShot: 7
+  crosshairKickRecovery: 24
+  maxCrosshairKick: 20
+  crosshairMaxDistance: 150
+  crosshairMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  crosshairColor: {r: 1, g: 1, b: 1, a: 1}
+  targetCrosshairColor: {r: 1, g: 0.25, b: 0.2, a: 1}
+  hitMarkerDuration: 0.12
+  hitMarkerLength: 10
+  hitMarkerGap: 6
+  hitMarkerThickness: 2
+  hitMarkerColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1001 &512605420
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -59844,6 +59870,43 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1559546258}
   m_PrefabAsset: {fileID: 0}
+--- !u!84 &1562102873
+RenderTexture:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: WaterDepthMap
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 6
+  m_Width: 1024
+  m_Height: 1024
+  m_AntiAliasing: 1
+  m_MipCount: -1
+  m_DepthStencilFormat: 94
+  m_ColorFormat: 0
+  m_MipMap: 0
+  m_GenerateMips: 1
+  m_SRGB: 0
+  m_UseDynamicScale: 0
+  m_UseDynamicScaleExplicit: 0
+  m_BindMS: 0
+  m_EnableCompatibleFormat: 1
+  m_EnableRandomWrite: 0
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_Dimension: 2
+  m_VolumeDepth: 1
+  m_ShadowSamplingMode: 2
 --- !u!1001 &1564547410
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -68044,43 +68107,6 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1819471854}
   m_PrefabAsset: {fileID: 0}
---- !u!84 &1821648885
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: WaterDepthMap
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 6
-  m_Width: 1024
-  m_Height: 1024
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 94
-  m_ColorFormat: 0
-  m_MipMap: 0
-  m_GenerateMips: 1
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_UseDynamicScaleExplicit: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 0
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!4 &1821908736 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400002, guid: 31ff1d9c660717640aa75c9feef614cd,
