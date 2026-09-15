@@ -3,6 +3,7 @@ using TacticalEcho.AI.Navigation;
 using TacticalEcho.AI.Perception;
 using TacticalEcho.AI.States;
 using TacticalEcho.AI.TacticalActions;
+using TacticalEcho.AnimationSystem.Runtime;
 using TacticalEcho.Combat.Health;
 using TacticalEcho.Combat.Weapons;
 using TacticalEcho.Core.Events;
@@ -178,6 +179,9 @@ namespace TacticalEcho.AI.Brain
             movement?.Stop();
             weapon?.CancelReload();
             ChangeState(EnemyStateId.Dead);
+
+            Animator animator = GetComponentInChildren<Animator>(true);
+            DeathAnimationPlayer.Play(animator);
         }
 
         private void UpdatePerceptionDrivenState(bool canSeeTarget, bool heardNoise)

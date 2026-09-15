@@ -164,6 +164,11 @@ namespace TacticalEcho.Character.Player
             subscribedHealth = health;
             subscribedHealth.Died += HandleDied;
             isDead = !subscribedHealth.IsAlive;
+
+            if (isDead)
+            {
+                animationController?.PlayDeath();
+            }
         }
 
         private void UnbindHealthEvents()
@@ -203,6 +208,7 @@ namespace TacticalEcho.Character.Player
             weapon?.CancelReload();
             playerCamera?.SetMode(CameraMode.Explore);
             animationController?.SetLocomotion(Vector2.zero, 0f, false, false);
+            animationController?.PlayDeath();
         }
 
         private void UpdateMovement()

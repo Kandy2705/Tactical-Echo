@@ -26,6 +26,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
         private Animator animator;
         private int upperBodyLayerIndex = -1;
         private float upperBodyLayerWeight;
+        private bool isDead;
 
         private void Awake()
         {
@@ -40,7 +41,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         public void SetLocomotion(Vector2 moveInput, float normalizedSpeed, bool isSprinting, bool isAiming)
         {
-            if (!HasPlayableAnimator())
+            if (isDead || !HasPlayableAnimator())
             {
                 return;
             }
@@ -56,7 +57,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         public void PlayFire()
         {
-            if (!HasPlayableAnimator())
+            if (isDead || !HasPlayableAnimator())
             {
                 return;
             }
@@ -67,13 +68,38 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         public void PlayReload()
         {
-            if (!HasPlayableAnimator())
+            if (isDead || !HasPlayableAnimator())
             {
                 return;
             }
 
             animator.ResetTrigger(ReloadHash);
             animator.SetTrigger(ReloadHash);
+        }
+
+        public void PlayDeath()
+        {
+            if (isDead || !HasPlayableAnimator())
+            {
+                return;
+            }
+
+            isDead = true;
+            animator.ResetTrigger(FireHash);
+            animator.ResetTrigger(ReloadHash);
+            animator.SetBool(SprintingHash, false);
+            animator.SetBool(AimHash, false);
+            animator.SetFloat(SpeedHash, 0f);
+            animator.SetFloat(MoveXHash, 0f);
+            animator.SetFloat(MoveYHash, 0f);
+
+            if (upperBodyLayerIndex >= 0)
+            {
+                animator.SetLayerWeight(upperBodyLayerIndex, 0f);
+                upperBodyLayerWeight = 0f;
+            }
+
+            DeathAnimationPlayer.Play(animator);
         }
 
         private void UpdateUpperBodyLayer(bool isAiming)
