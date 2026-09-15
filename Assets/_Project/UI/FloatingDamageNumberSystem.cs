@@ -70,8 +70,8 @@ namespace TacticalEcho.UI
             entry.Text.fontSize = critical ? 46f : 34f;
             entry.Text.fontStyle = FontStyles.Bold;
             entry.BaseColor = critical
-                ? new Color(1f, 0.35f, 0.12f, 1f)
-                : Color.white;
+                ? new Color(1f, 0.28f, 0.08f, 1f)
+                : new Color(1f, 0.08f, 0.06f, 1f);
             entry.Text.color = entry.BaseColor;
             entry.Text.outlineColor = new Color32(0, 0, 0, 220);
             entry.Text.outlineWidth = critical ? 0.24f : 0.18f;
@@ -187,7 +187,7 @@ namespace TacticalEcho.UI
                     Text = text,
                     EndTime = 0f,
                     Velocity = Vector2.zero,
-                    BaseColor = Color.white
+                    BaseColor = new Color(1f, 0.08f, 0.06f, 1f)
                 };
             }
         }
