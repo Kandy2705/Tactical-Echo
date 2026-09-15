@@ -1,5 +1,6 @@
 using System;
 using TacticalEcho.Combat.Damage;
+using TacticalEcho.Combat.Impacts;
 using TacticalEcho.Core.Events;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -21,8 +22,6 @@ namespace TacticalEcho.Combat.Weapons
         [SerializeField] private WeaponAudioProfile audioProfile;
         [SerializeField] private AudioClip fireAudioClip;
         [SerializeField, Range(0f, 1f)] private float fireAudioVolume = 0.95f;
-        [SerializeField] private GameObject hitImpactPrefab;
-        [SerializeField, Min(0.05f)] private float hitImpactLifetime = 2f;
 
         [Header("Tracer")]
         [SerializeField] private bool enableTracer = true;
@@ -31,13 +30,6 @@ namespace TacticalEcho.Combat.Weapons
         [SerializeField, Min(0.001f)] private float tracerWidth = 0.012f;
         [SerializeField] private Color tracerStartColor = new(1f, 0.9f, 0.45f, 1f);
         [SerializeField] private Color tracerEndColor = new(1f, 0.45f, 0.15f, 0.15f);
-
-        [Header("Fallback Hit Impact")]
-        [SerializeField] private bool enableProceduralHitImpact = true;
-        [SerializeField, Range(4, 32)] private int proceduralImpactPoolSize = 16;
-        [SerializeField, Min(0.01f)] private float proceduralImpactDuration = 0.12f;
-        [SerializeField, Min(0.005f)] private float proceduralImpactSize = 0.045f;
-        [SerializeField] private Color proceduralImpactColor = new(1f, 0.72f, 0.25f, 1f);
 
         [Header("Muzzle Flash")]
         [SerializeField] private bool enableMuzzleFlash = true;
@@ -62,20 +54,9 @@ namespace TacticalEcho.Combat.Weapons
         private Light muzzleFlashLight;
         private float muzzleFlashEndTime;
 
-        private ProceduralImpactMarker[] impactPool;
-        private int nextImpactIndex;
-        private Material proceduralImpactMaterial;
-
         private ShotTracer[] tracerPool;
         private int nextTracerIndex;
         private Material tracerMaterial;
-
-        private sealed class ProceduralImpactMarker
-        {
-            public GameObject GameObject;
-            public Transform Transform;
-            public float EndTime;
-        }
 
         private sealed class ShotTracer
         {
@@ -88,7 +69,6 @@ namespace TacticalEcho.Combat.Weapons
         {
             InitializeRuntime();
             ResolveAudioProfile();
-            EnsureShotFeedbackComponents();
         }
 
         private void Update()
@@ -105,7 +85,6 @@ namespace TacticalEcho.Combat.Weapons
                 muzzleFlashLight.enabled = false;
             }
 
-            UpdateProceduralImpacts();
             UpdateTracers();
         }
 
@@ -121,13 +100,7 @@ namespace TacticalEcho.Combat.Weapons
 
         private void OnDestroy()
         {
-            DestroyImpactPool();
             DestroyTracerPool();
-
-            if (proceduralImpactMaterial != null)
-            {
-                Destroy(proceduralImpactMaterial);
-            }
 
             if (tracerMaterial != null)
             {
@@ -141,7 +114,6 @@ namespace TacticalEcho.Combat.Weapons
             muzzle = muzzleTransform;
             InitializeRuntime();
             ResolveAudioProfile();
-            EnsureShotFeedbackComponents();
         }
 
         public bool TryFire(
@@ -180,7 +152,7 @@ namespace TacticalEcho.Combat.Weapons
                     gameObject);
 
                 bool damageApplied = DamageSystem.TryApply(hit.collider, damageInfo);
-                SpawnHitImpact(hit);
+                SurfaceImpactSystem.HandleHit(hit, damageApplied);
                 HitResolved?.Invoke(hit);
 
                 if (damageApplied)
@@ -243,9 +215,13 @@ namespace TacticalEcho.Combat.Weapons
             }
         }
 
-        private void EnsureShotFeedbackComponents()
+        private void EnsureAudioSource()
         {
-            audioSource = GetComponent<AudioSource>();
+            if (audioSource == null)
+            {
+                audioSource = GetComponent<AudioSource>();
+            }
+
             if (audioSource == null)
             {
                 audioSource = gameObject.AddComponent<AudioSource>();
@@ -258,18 +234,11 @@ namespace TacticalEcho.Combat.Weapons
             audioSource.minDistance = 1f;
             audioSource.maxDistance = 55f;
             audioSource.volume = 1f;
+        }
 
-            if (enableProceduralHitImpact && hitImpactPrefab == null)
-            {
-                EnsureProceduralImpactPool();
-            }
-
-            if (enableTracer)
-            {
-                EnsureTracerPool();
-            }
-
-            if (!enableMuzzleFlash || muzzle == null)
+        private void EnsureMuzzleFlash()
+        {
+            if (!enableMuzzleFlash || muzzle == null || muzzleFlashLight != null)
             {
                 return;
             }
@@ -283,6 +252,7 @@ namespace TacticalEcho.Combat.Weapons
             if (muzzleFlashLight == null)
             {
                 GameObject flashObject = new("RuntimeMuzzleFlash");
+                flashObject.hideFlags = HideFlags.HideInHierarchy | HideFlags.DontSave;
                 flashObject.transform.SetParent(muzzle, false);
                 muzzleFlashLight = flashObject.AddComponent<Light>();
                 muzzleFlashLight.type = LightType.Point;
@@ -295,6 +265,9 @@ namespace TacticalEcho.Combat.Weapons
 
         private void PlayShotFeedback()
         {
+            EnsureAudioSource();
+            EnsureMuzzleFlash();
+
             AudioClip clip = audioProfile != null ? audioProfile.GetRandomFireClip() : null;
             if (clip == null)
             {
@@ -321,7 +294,13 @@ namespace TacticalEcho.Combat.Weapons
 
         private void PlayReloadClip(AudioClip clip)
         {
-            if (clip == null || audioSource == null)
+            if (clip == null)
+            {
+                return;
+            }
+
+            EnsureAudioSource();
+            if (audioSource == null)
             {
                 return;
             }
@@ -391,7 +370,8 @@ namespace TacticalEcho.Combat.Weapons
 
                 tracerMaterial = new Material(shader)
                 {
-                    name = "Runtime Rifle Tracer"
+                    name = "Runtime Rifle Tracer",
+                    hideFlags = HideFlags.DontSave
                 };
             }
 
@@ -401,6 +381,7 @@ namespace TacticalEcho.Combat.Weapons
             for (int i = 0; i < targetSize; i++)
             {
                 GameObject tracerObject = new($"RuntimeTracer_{i:00}");
+                tracerObject.hideFlags = HideFlags.HideInHierarchy | HideFlags.DontSave;
                 tracerObject.transform.SetParent(transform, false);
 
                 LineRenderer line = tracerObject.AddComponent<LineRenderer>();
@@ -470,158 +451,6 @@ namespace TacticalEcho.Combat.Weapons
             }
 
             tracerPool = null;
-        }
-
-        private void SpawnHitImpact(in RaycastHit hit)
-        {
-            if (hitImpactPrefab != null)
-            {
-                Quaternion rotation = Quaternion.LookRotation(hit.normal);
-                GameObject impact = Instantiate(hitImpactPrefab, hit.point + hit.normal * 0.002f, rotation);
-                Destroy(impact, hitImpactLifetime);
-                return;
-            }
-
-            if (!enableProceduralHitImpact)
-            {
-                return;
-            }
-
-            EnsureProceduralImpactPool();
-            if (impactPool == null || impactPool.Length == 0)
-            {
-                return;
-            }
-
-            ProceduralImpactMarker marker = impactPool[nextImpactIndex];
-            nextImpactIndex = (nextImpactIndex + 1) % impactPool.Length;
-
-            marker.Transform.position = hit.point + hit.normal * 0.004f;
-            marker.Transform.rotation = Quaternion.LookRotation(hit.normal);
-            marker.Transform.localScale = Vector3.one * proceduralImpactSize;
-            marker.EndTime = Time.time + proceduralImpactDuration;
-            marker.GameObject.SetActive(true);
-        }
-
-        private void EnsureProceduralImpactPool()
-        {
-            int targetSize = Mathf.Clamp(proceduralImpactPoolSize, 4, 32);
-            if (impactPool != null && impactPool.Length == targetSize)
-            {
-                return;
-            }
-
-            DestroyImpactPool();
-
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-            if (shader == null)
-            {
-                shader = Shader.Find("Unlit/Color");
-            }
-
-            if (shader == null)
-            {
-                impactPool = Array.Empty<ProceduralImpactMarker>();
-                return;
-            }
-
-            if (proceduralImpactMaterial == null || proceduralImpactMaterial.shader != shader)
-            {
-                if (proceduralImpactMaterial != null)
-                {
-                    Destroy(proceduralImpactMaterial);
-                }
-
-                proceduralImpactMaterial = new Material(shader)
-                {
-                    name = "Runtime Procedural Bullet Impact"
-                };
-
-                if (proceduralImpactMaterial.HasProperty("_BaseColor"))
-                {
-                    proceduralImpactMaterial.SetColor("_BaseColor", proceduralImpactColor);
-                }
-                else if (proceduralImpactMaterial.HasProperty("_Color"))
-                {
-                    proceduralImpactMaterial.SetColor("_Color", proceduralImpactColor);
-                }
-            }
-
-            impactPool = new ProceduralImpactMarker[targetSize];
-            nextImpactIndex = 0;
-
-            for (int i = 0; i < targetSize; i++)
-            {
-                GameObject markerObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                markerObject.name = $"RuntimeBulletImpact_{i:00}";
-
-                Collider markerCollider = markerObject.GetComponent<Collider>();
-                if (markerCollider != null)
-                {
-                    Destroy(markerCollider);
-                }
-
-                MeshRenderer renderer = markerObject.GetComponent<MeshRenderer>();
-                if (renderer != null)
-                {
-                    renderer.sharedMaterial = proceduralImpactMaterial;
-                    renderer.shadowCastingMode = ShadowCastingMode.Off;
-                    renderer.receiveShadows = false;
-                }
-
-                markerObject.SetActive(false);
-                impactPool[i] = new ProceduralImpactMarker
-                {
-                    GameObject = markerObject,
-                    Transform = markerObject.transform,
-                    EndTime = 0f
-                };
-            }
-        }
-
-        private void DestroyImpactPool()
-        {
-            if (impactPool == null)
-            {
-                return;
-            }
-
-            foreach (ProceduralImpactMarker marker in impactPool)
-            {
-                if (marker?.GameObject != null)
-                {
-                    Destroy(marker.GameObject);
-                }
-            }
-
-            impactPool = null;
-        }
-
-        private void UpdateProceduralImpacts()
-        {
-            if (impactPool == null)
-            {
-                return;
-            }
-
-            float now = Time.time;
-            foreach (ProceduralImpactMarker marker in impactPool)
-            {
-                if (marker == null || marker.GameObject == null || !marker.GameObject.activeSelf)
-                {
-                    continue;
-                }
-
-                float remaining = marker.EndTime - now;
-                if (remaining <= 0f)
-                {
-                    marker.GameObject.SetActive(false);
-                    continue;
-                }
-
-                float normalized = Mathf.Clamp01(remaining / proceduralImpactDuration);
-                marker.Transform.localScale = Vector3.one * proceduralImpactSize * Mathf.Lerp(0.25f, 1f, normalized);
-            }
         }
 
         private static Vector3 ApplySpread(Vector3 forward, float spreadDegrees)
