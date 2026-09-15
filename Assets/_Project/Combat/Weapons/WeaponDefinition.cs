@@ -20,8 +20,21 @@ namespace TacticalEcho.Combat.Weapons
         [SerializeField, Min(0)] private int startingReserveAmmo = 90;
         [SerializeField, Min(0.01f)] private float reloadTime = 2.1f;
 
-        [Header("Handling - used by later shooting polish")]
+        [Header("Spread")]
+        [Tooltip("Minimum cone angle in degrees.")]
         [SerializeField, Min(0f)] private float baseSpread = 0.25f;
+        [Tooltip("Maximum cone angle after movement/continuous fire.")]
+        [SerializeField, Min(0f)] private float maxSpread = 2.2f;
+        [Tooltip("Additional spread added after each successful shot.")]
+        [SerializeField, Min(0f)] private float spreadPerShot = 0.16f;
+        [Tooltip("Spread recovered per second while not firing.")]
+        [SerializeField, Min(0f)] private float spreadRecoveryPerSecond = 1.35f;
+        [Tooltip("Additional spread at full movement speed.")]
+        [SerializeField, Min(0f)] private float movementSpread = 0.65f;
+        [Tooltip("Multiplier applied to spread while aiming over the shoulder.")]
+        [SerializeField, Range(0.1f, 1f)] private float aimSpreadMultiplier = 0.65f;
+
+        [Header("Recoil")]
         [SerializeField, Min(0f)] private float recoil = 1f;
 
         [Header("AI Hearing")]
@@ -37,6 +50,11 @@ namespace TacticalEcho.Combat.Weapons
         public int StartingReserveAmmo => startingReserveAmmo;
         public float ReloadTime => reloadTime;
         public float BaseSpread => baseSpread;
+        public float MaxSpread => Mathf.Max(baseSpread, maxSpread);
+        public float SpreadPerShot => spreadPerShot;
+        public float SpreadRecoveryPerSecond => spreadRecoveryPerSecond;
+        public float MovementSpread => movementSpread;
+        public float AimSpreadMultiplier => aimSpreadMultiplier;
         public float Recoil => recoil;
         public float NoiseRadius => noiseRadius;
         public float NoiseIntensity => noiseIntensity;
@@ -51,6 +69,13 @@ namespace TacticalEcho.Combat.Weapons
             magazineSize = Mathf.Max(1, magazineSize);
             startingReserveAmmo = Mathf.Max(0, startingReserveAmmo);
             reloadTime = Mathf.Max(0.01f, reloadTime);
+            baseSpread = Mathf.Max(0f, baseSpread);
+            maxSpread = Mathf.Max(baseSpread, maxSpread);
+            spreadPerShot = Mathf.Max(0f, spreadPerShot);
+            spreadRecoveryPerSecond = Mathf.Max(0f, spreadRecoveryPerSecond);
+            movementSpread = Mathf.Max(0f, movementSpread);
+            aimSpreadMultiplier = Mathf.Clamp(aimSpreadMultiplier, 0.1f, 1f);
+            recoil = Mathf.Max(0f, recoil);
             noiseRadius = Mathf.Max(0f, noiseRadius);
             noiseIntensity = Mathf.Clamp(noiseIntensity, 0f, 2f);
         }
