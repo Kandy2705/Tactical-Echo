@@ -4,7 +4,7 @@ This document answers one question before adding a feature: **which existing cla
 
 Read this together with `Docs/ARCHITECTURE.md` before changing gameplay code. `ARCHITECTURE.md` defines the architectural rules and boundaries; this file maps those rules to the current codebase so future work extends the correct owner instead of creating duplicate managers, controllers, helpers or systems.
 
-Reviewed against `main` at commit `5940faa4644fa8c03e2aaa62725b28293d756de6`. Scope: project-owned C# under `Assets/_Project`.
+Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Scope: project-owned C# under `Assets/_Project`.
 
 ## Rules for future implementation
 
@@ -52,7 +52,7 @@ Reviewed against `main` at commit `5940faa4644fa8c03e2aaa62725b28293d756de6`. Sc
 | NavMesh movement | `EnemyMovement.cs` | AI movement execution boundary. |
 | Cover point data/evaluation | `CoverPoint.cs` + `CoverEvaluator.cs` | Do not mix cover search into Brain. |
 | AI state/score/memory debug | `EnemyAIGizmos.cs` / `AIDebugOverlay.cs` | Observation only. |
-| Sandbox perception demo enemy | `EnemyPerceptionDemoBootstrap.cs` | Test harness only, not production enemy setup. |
+| Sandbox perception demo enemy | `EnemyPerceptionDemoBootstrap.cs` | Owns sandbox-only edit-time authoring plus runtime binding; never production enemy setup. |
 | Status-effect config | `StatusEffectDefinition.cs` | Immutable effect data. |
 | Status-effect runtime duration/stack | `StatusEffectInstance.cs` | Mutable instance state. |
 | Active status effects | `StatusEffectController.cs` | Apply, stack, expire. |
@@ -76,7 +76,7 @@ Reviewed against `main` at commit `5940faa4644fa8c03e2aaa62725b28293d756de6`. Sc
 | `AI/Cover/CoverEvaluator.cs` | Cover candidate validation and scoring | Better cover scoring, travel/threat criteria, NavMesh-valid cover selection | State transitions or direct movement |
 | `AI/Cover/CoverPoint.cs` | Authored cover location and optional peek point | Extra metadata that belongs to a cover point | Global cover search/AI decisions |
 | `AI/Debug/EnemyAIGizmos.cs` | Scene gizmos for perception and memory | More read-only visualization | Gameplay state or decisions |
-| `AI/Debug/EnemyPerceptionDemoBootstrap.cs` | Runtime sandbox test enemy and demo status view | Temporary/debug setup for the perception showcase | Production enemy construction or rules |
+| `AI/Debug/EnemyPerceptionDemoBootstrap.cs` | Sandbox perception-demo prefab/scene authoring, runtime player binding, NavMesh fallback and demo status view | Temporary/debug setup for the perception showcase, including making the demo enemy visible before Play | Production enemy construction, production spawning or gameplay rules |
 | `AI/Memory/EnemyMemory.cs` | Last seen/heard positions, times and confidence decay | Memory confidence, remembered target information, forgetting rules | Direct sensing or movement |
 | `AI/Navigation/EnemyMovement.cs` | NavMeshAgent execution | Destination, stop, path/reached behavior and later movement execution details | Tactical scoring and perception |
 | `AI/Perception/HearingSensor.cs` | Hearing NoiseEventHub events and reporting pending noise | Hearing radius/filters/sensor-side detection | Remembering noise or choosing actions |
@@ -213,7 +213,7 @@ The codebase is in active development, so this map also records places that shou
 
 - `EnemyBrain` currently invokes `DeathAnimationPlayer` directly on death. The architecture says animation execution belongs behind an animation controller. When enemy animation/death work is touched, extend `EnemyAnimationController` with the death command and let Brain request it; do not add a separate `EnemyDeathController`.
 - `PlayerController` currently bridges weapon damage feedback to hit marker/floating-number presentation. Do not use that as a reason to keep adding UI rendering responsibilities to PlayerController. Prefer existing UI/camera presentation owners and event-based observation.
-- `EnemyPerceptionDemoBootstrap` is deliberately a runtime debug harness. Do not grow the real enemy architecture inside this file.
+- `EnemyPerceptionDemoBootstrap` is deliberately a sandbox-only debug harness. Editor authoring and temporary runtime wiring for the perception showcase belong here, but do not grow the real enemy architecture or production spawning inside this file.
 
 These are targeted cleanup directions, not a request for a broad refactor before the relevant feature is worked on.
 

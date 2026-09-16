@@ -1,5 +1,6 @@
 using TacticalEcho.AI.Brain;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace TacticalEcho.AI.Debugging
 {
@@ -10,19 +11,46 @@ namespace TacticalEcho.AI.Debugging
         [Header("Perception Debug")]
         [SerializeField, Range(6, 64)] private int visionArcSegments = 24;
         [SerializeField, Min(0f)] private float heardNoiseDisplayDuration = 2f;
+        [SerializeField, Min(0.25f)] private float facingDirectionLength = 2f;
         [SerializeField] private Color visionColor = new(0.2f, 0.85f, 1f, 1f);
         [SerializeField] private Color visibleTargetColor = new(0.2f, 1f, 0.35f, 1f);
         [SerializeField] private Color blockedTargetColor = new(1f, 0.3f, 0.2f, 1f);
         [SerializeField] private Color hearingColor = new(1f, 0.75f, 0.15f, 1f);
         [SerializeField] private Color memoryColor = new(0.85f, 0.35f, 1f, 1f);
+        [SerializeField] private Color facingColor = new(1f, 1f, 1f, 1f);
+        [SerializeField] private Color navigationColor = new(0.25f, 1f, 0.65f, 1f);
 
         public void Configure(EnemyBrain newBrain)
         {
             brain = newBrain;
         }
 
+        private void Reset()
+        {
+            if (brain == null)
+            {
+                brain = GetComponent<EnemyBrain>();
+            }
+        }
+
+        private void OnValidate()
+        {
+            if (brain == null)
+            {
+                brain = GetComponent<EnemyBrain>();
+            }
+        }
+
         private void OnDrawGizmosSelected()
         {
+            DrawFacingDirection();
+            DrawNavigationFootprint();
+
+            if (brain == null)
+            {
+                brain = GetComponent<EnemyBrain>();
+            }
+
             if (brain == null)
             {
                 return;
@@ -31,6 +59,41 @@ namespace TacticalEcho.AI.Debugging
             DrawVision();
             DrawHearing();
             DrawMemory();
+        }
+
+        private void DrawFacingDirection()
+        {
+            Vector3 origin = transform.position + Vector3.up * 0.08f;
+            Vector3 forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+            if (forward.sqrMagnitude <= 0.001f)
+            {
+                return;
+            }
+
+            forward.Normalize();
+            float length = Mathf.Max(0.25f, facingDirectionLength);
+            Vector3 end = origin + forward * length;
+
+            Gizmos.color = facingColor;
+            Gizmos.DrawLine(origin, end);
+
+            Vector3 right = Quaternion.AngleAxis(150f, Vector3.up) * forward;
+            Vector3 left = Quaternion.AngleAxis(-150f, Vector3.up) * forward;
+            Gizmos.DrawLine(end, end + right * 0.3f);
+            Gizmos.DrawLine(end, end + left * 0.3f);
+        }
+
+        private void DrawNavigationFootprint()
+        {
+            NavMeshAgent agent = GetComponent<NavMeshAgent>();
+            if (agent == null)
+            {
+                return;
+            }
+
+            Gizmos.color = navigationColor;
+            Vector3 center = transform.position + Vector3.up * 0.03f;
+            Gizmos.DrawWireSphere(center, agent.radius);
         }
 
         private void DrawVision()
