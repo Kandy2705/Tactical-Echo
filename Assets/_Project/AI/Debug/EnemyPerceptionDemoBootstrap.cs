@@ -1,5 +1,6 @@
 using TacticalEcho.AI.Brain;
 using TacticalEcho.AI.Memory;
+using TacticalEcho.AI.Navigation;
 using TacticalEcho.AI.Perception;
 using TacticalEcho.AI.States;
 using TacticalEcho.Character.Player;
@@ -7,7 +8,9 @@ using TacticalEcho.Combat.Damage;
 using TacticalEcho.Combat.Health;
 using TacticalEcho.Combat.Weapons;
 using TMPro;
+using Unity.AI.Navigation;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace TacticalEcho.AI.Debugging
 {
@@ -20,6 +23,10 @@ namespace TacticalEcho.AI.Debugging
     {
         private const string SandboxSceneName = "TacticalEcho_Sandbox";
         private const string DemoEnemyName = "Enemy_PerceptionTest_Kaia";
+        private const string RuntimeNavMeshName = "Runtime_NavMeshSurface_AI_Test";
+        private const float EnemyNavMeshSnapDistance = 8f;
+
+        private static readonly Vector3 RuntimeNavMeshSize = new(120f, 30f, 120f);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void SpawnDemoEnemy()
@@ -42,6 +49,8 @@ namespace TacticalEcho.AI.Debugging
             }
 
             Transform player = playerVisual.transform;
+            bool navMeshReady = EnsureNavigationAvailable(player);
+
             GameObject enemy = new(DemoEnemyName);
             enemy.transform.position = ResolveSpawnPosition(player);
 
@@ -68,6 +77,16 @@ namespace TacticalEcho.AI.Debugging
             Health health = enemy.AddComponent<Health>();
             CreateMeshAlignedHitZones(visualClone, enemy);
 
+            EnemyMovement movement = enemy.AddComponent<EnemyMovement>();
+            movement.ConfigureAgent(
+                speed: 3.5f,
+                acceleration: 14f,
+                radius: 0.28f,
+                height: 1.7f,
+                updateRotation: false);
+
+            bool enemyOnNavMesh = navMeshReady && movement.TrySnapToNavMesh(EnemyNavMeshSnapDistance);
+
             HearingSensor hearing = enemy.AddComponent<HearingSensor>();
             EnemyMemory memory = enemy.AddComponent<EnemyMemory>();
 
@@ -80,7 +99,7 @@ namespace TacticalEcho.AI.Debugging
 
             EnemyBrain brain = enemy.AddComponent<EnemyBrain>();
             brain.ConfigurePerception(vision, hearing, memory);
-            brain.ConfigureExecution(null, null, health);
+            brain.ConfigureExecution(movement, null, health);
 
             EnemyAIGizmos gizmos = enemy.AddComponent<EnemyAIGizmos>();
             gizmos.Configure(brain);
@@ -90,9 +109,126 @@ namespace TacticalEcho.AI.Debugging
             EnemyPerceptionDemoView view = enemy.AddComponent<EnemyPerceptionDemoView>();
             view.Configure(brain, health, statusText, labelRoot);
 
+            if (!enemyOnNavMesh)
+            {
+                Debug.LogWarning(
+                    "[AI Perception Demo] Enemy could not attach to a NavMesh. " +
+                    "The perception test still runs, but movement will stay disabled. " +
+                    "Verify that nearby walkable ground has a Collider and is included in the runtime NavMesh volume.");
+            }
+
             Debug.Log(
                 "[AI Perception Demo] Spawned Enemy_PerceptionTest_Kaia with mesh-aligned humanoid hit zones. " +
+                $"Navigation={(enemyOnNavMesh ? "READY" : "NOT READY")}. " +
                 "Head 2.0x, torso 1.0x, arms 0.75x, legs 0.65x.");
+        }
+
+        private static bool EnsureNavigationAvailable(Transform player)
+        {
+            if (HasUsableNavMesh())
+            {
+                Debug.Log("[AI Perception Demo] Using NavMesh already available in the scene.");
+                return true;
+            }
+
+            NavMeshModifier playerModifier = player.GetComponent<NavMeshModifier>();
+            bool createdModifier = playerModifier == null;
+            bool previousIgnore = false;
+            bool previousApplyToChildren = false;
+
+            if (createdModifier)
+            {
+                playerModifier = player.gameObject.AddComponent<NavMeshModifier>();
+            }
+            else
+            {
+                previousIgnore = playerModifier.ignoreFromBuild;
+                previousApplyToChildren = playerModifier.applyToChildren;
+            }
+
+            playerModifier.ignoreFromBuild = true;
+            playerModifier.applyToChildren = true;
+
+            GameObject surfaceObject = new(RuntimeNavMeshName);
+            surfaceObject.hideFlags = HideFlags.DontSave;
+            surfaceObject.transform.position = player.position;
+
+            NavMeshSurface surface = surfaceObject.AddComponent<NavMeshSurface>();
+            surface.collectObjects = CollectObjects.Volume;
+            surface.size = RuntimeNavMeshSize;
+            surface.center = new Vector3(0f, 5f, 0f);
+            surface.layerMask = BuildNavigationLayerMask();
+            surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
+            surface.defaultArea = NavMesh.GetAreaFromName("Walkable");
+            surface.ignoreNavMeshAgent = true;
+            surface.ignoreNavMeshObstacle = true;
+            surface.overrideTileSize = true;
+            surface.tileSize = 128;
+
+            bool buildSucceeded = false;
+            try
+            {
+                surface.BuildNavMesh();
+                buildSucceeded = HasUsableNavMesh();
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogWarning($"[AI Perception Demo] Runtime NavMesh build failed: {exception.Message}");
+            }
+            finally
+            {
+                if (createdModifier)
+                {
+                    Object.Destroy(playerModifier);
+                }
+                else
+                {
+                    playerModifier.ignoreFromBuild = previousIgnore;
+                    playerModifier.applyToChildren = previousApplyToChildren;
+                }
+            }
+
+            if (!buildSucceeded)
+            {
+                Object.Destroy(surfaceObject);
+                Debug.LogWarning(
+                    "[AI Perception Demo] No usable NavMesh was found or generated. " +
+                    "Runtime baking uses nearby Physics Colliders, so the walkable floor must have a Collider.");
+                return false;
+            }
+
+            NavMeshTriangulation triangulation = NavMesh.CalculateTriangulation();
+            Debug.Log(
+                $"[AI Perception Demo] Runtime NavMesh generated around the player " +
+                $"({triangulation.vertices.Length} vertices, volume {RuntimeNavMeshSize.x:0}x{RuntimeNavMeshSize.z:0}).");
+            return true;
+        }
+
+        private static LayerMask BuildNavigationLayerMask()
+        {
+            int mask = ~0;
+            ExcludeLayer(ref mask, "Ignore Raycast");
+            ExcludeLayer(ref mask, "Water");
+            ExcludeLayer(ref mask, "UI");
+            ExcludeLayer(ref mask, "Reflection_Probes");
+            ExcludeLayer(ref mask, "AccessibleVolume");
+            ExcludeLayer(ref mask, "PostProcessing");
+            return mask;
+        }
+
+        private static void ExcludeLayer(ref int mask, string layerName)
+        {
+            int layer = LayerMask.NameToLayer(layerName);
+            if (layer >= 0)
+            {
+                mask &= ~(1 << layer);
+            }
+        }
+
+        private static bool HasUsableNavMesh()
+        {
+            NavMeshTriangulation triangulation = NavMesh.CalculateTriangulation();
+            return triangulation.vertices != null && triangulation.vertices.Length >= 3;
         }
 
         private static void CreateMeshAlignedHitZones(GameObject visualClone, GameObject enemyRoot)
@@ -214,6 +350,11 @@ namespace TacticalEcho.AI.Debugging
                 desired.y = player.position.y;
             }
 
+            if (NavMesh.SamplePosition(desired, out NavMeshHit navMeshHit, EnemyNavMeshSnapDistance, NavMesh.AllAreas))
+            {
+                desired = navMeshHit.position;
+            }
+
             return desired;
         }
 
@@ -226,7 +367,7 @@ namespace TacticalEcho.AI.Debugging
             canvasRect.localPosition = new Vector3(0f, 2.15f, 0f);
             canvasRect.localRotation = Quaternion.identity;
             canvasRect.localScale = Vector3.one * 0.005f;
-            canvasRect.sizeDelta = new Vector2(360f, 110f);
+            canvasRect.sizeDelta = new Vector2(380f, 140f);
 
             Canvas canvas = canvasObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
@@ -243,8 +384,8 @@ namespace TacticalEcho.AI.Debugging
             textRect.offsetMax = Vector2.zero;
 
             TextMeshProUGUI text = textObject.AddComponent<TextMeshProUGUI>();
-            text.text = "AI TEST\nPATROL";
-            text.fontSize = 28f;
+            text.text = "AI TEST\nPATROL\nNAV CHECK";
+            text.fontSize = 26f;
             text.alignment = TextAlignmentOptions.Center;
             text.enableWordWrapping = false;
             text.raycastTarget = false;
@@ -266,6 +407,8 @@ namespace TacticalEcho.AI.Debugging
         private Camera mainCamera;
         private EnemyStateId previousState = (EnemyStateId)(-1);
         private int previousHealth = -1;
+        private bool previousNavigationReady;
+        private bool hasPreviousNavigationState;
 
         public void Configure(EnemyBrain newBrain, Health newHealth, TMP_Text newStatusText, Transform newLabelRoot)
         {
@@ -351,13 +494,20 @@ namespace TacticalEcho.AI.Debugging
             }
 
             int currentHealth = health != null ? Mathf.CeilToInt(health.Current) : 0;
-            if (!force && previousState == brain.CurrentState && previousHealth == currentHealth)
+            bool navigationReady = brain.Movement != null && brain.Movement.IsOnNavMesh;
+            if (!force
+                && previousState == brain.CurrentState
+                && previousHealth == currentHealth
+                && hasPreviousNavigationState
+                && previousNavigationReady == navigationReady)
             {
                 return;
             }
 
             previousState = brain.CurrentState;
             previousHealth = currentHealth;
+            previousNavigationReady = navigationReady;
+            hasPreviousNavigationState = true;
 
             string stateDescription;
             Color stateColor;
@@ -389,8 +539,9 @@ namespace TacticalEcho.AI.Debugging
             string healthLine = health != null
                 ? $"HP {health.Current:0} / {health.Max:0}"
                 : string.Empty;
+            string navigationLine = navigationReady ? "NAV READY" : "NAV NOT READY";
 
-            statusText.text = $"AI TEST\n{stateDescription}\n{healthLine}";
+            statusText.text = $"AI TEST\n{stateDescription}\n{navigationLine}\n{healthLine}";
             statusText.color = stateColor;
         }
     }
