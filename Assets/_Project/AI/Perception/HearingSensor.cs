@@ -10,6 +10,11 @@ namespace TacticalEcho.AI.Perception
         private bool hasPendingNoise;
         private NoiseEventData pendingNoise;
 
+        public bool HasLastAudibleNoise { get; private set; }
+        public Vector3 LastAudibleNoisePosition { get; private set; }
+        public float LastAudibleRadius { get; private set; }
+        public float LastAudibleTime { get; private set; }
+
         private void OnEnable()
         {
             NoiseEventHub.NoiseEmitted += OnNoiseEmitted;
@@ -18,6 +23,7 @@ namespace TacticalEcho.AI.Perception
         private void OnDisable()
         {
             NoiseEventHub.NoiseEmitted -= OnNoiseEmitted;
+            hasPendingNoise = false;
         }
 
         public void TickSensor(float deltaTime)
@@ -47,6 +53,13 @@ namespace TacticalEcho.AI.Perception
 
             pendingNoise = noise;
             hasPendingNoise = true;
+
+            // Keep the last accepted event as read-only sensor telemetry so debug tools can
+            // visualize the real event radius without inventing a separate hearing range.
+            HasLastAudibleNoise = true;
+            LastAudibleNoisePosition = noise.Position;
+            LastAudibleRadius = audibleRadius;
+            LastAudibleTime = Time.time;
         }
     }
 }
