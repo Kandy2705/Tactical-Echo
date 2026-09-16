@@ -223,7 +223,7 @@ namespace TacticalEcho.UI
             text.fontSize = fontSize;
             text.alignment = alignment;
             text.raycastTarget = false;
-            text.enableWordWrapping = false;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
             text.richText = true;
             text.outlineWidth = 0.16f;
             text.outlineColor = new Color32(0, 0, 0, 210);

@@ -195,7 +195,7 @@ namespace TacticalEcho.UI
 
                 TextMeshProUGUI text = go.AddComponent<TextMeshProUGUI>();
                 text.alignment = TextAlignmentOptions.Center;
-                text.enableWordWrapping = false;
+                text.textWrappingMode = TextWrappingModes.NoWrap;
                 text.richText = false;
                 text.raycastTarget = false;
                 text.text = string.Empty;
