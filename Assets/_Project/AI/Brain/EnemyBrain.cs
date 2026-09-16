@@ -206,7 +206,10 @@ namespace TacticalEcho.AI.Brain
 
             if (memory != null && memory.HasKnownPosition)
             {
-                if (CurrentState == EnemyStateId.Combat || CurrentState == EnemyStateId.Investigate)
+                // Losing LOS from Combat switches to Search immediately. Investigate and
+                // Search keep working from remembered positions until their own state logic
+                // finishes or memory expires. They never receive the live player Transform.
+                if (CurrentState == EnemyStateId.Combat)
                 {
                     ChangeState(EnemyStateId.Search);
                 }
