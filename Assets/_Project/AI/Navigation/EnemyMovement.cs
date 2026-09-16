@@ -1,3 +1,4 @@
+using TacticalEcho.AnimationSystem.Runtime;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -8,6 +9,8 @@ namespace TacticalEcho.AI.Navigation
     {
         [SerializeField, Min(0f)] private float stoppingTolerance = 0.25f;
         [SerializeField, Min(0f)] private float navMeshSnapDistance = 2f;
+        [SerializeField, Min(0f)] private float navMeshSnapVerticalTolerance = 1f;
+        [SerializeField] private EnemyAnimationController animationController;
 
         private NavMeshAgent agent;
 
@@ -20,6 +23,12 @@ namespace TacticalEcho.AI.Navigation
         private void Awake()
         {
             ResolveAgent();
+            ResolveAnimationController();
+        }
+
+        private void Update()
+        {
+            UpdateLocomotionAnimation();
         }
 
         public void ConfigureAgent(
@@ -44,6 +53,11 @@ namespace TacticalEcho.AI.Navigation
             agent.autoRepath = true;
         }
 
+        public void ConfigureAnimation(EnemyAnimationController newAnimationController)
+        {
+            animationController = newAnimationController;
+        }
+
         public bool TrySnapToNavMesh(float maxDistance = -1f)
         {
             ResolveAgent();
@@ -52,19 +66,66 @@ namespace TacticalEcho.AI.Navigation
                 return false;
             }
 
-            if (agent.isOnNavMesh)
+            if (agent.enabled && agent.isOnNavMesh)
             {
                 return true;
             }
 
             float sampleDistance = maxDistance >= 0f ? maxDistance : navMeshSnapDistance;
             if (sampleDistance <= 0f
-                || !NavMesh.SamplePosition(transform.position, out NavMeshHit hit, sampleDistance, NavMesh.AllAreas))
+                || !TryFindNavMeshPosition(transform.position, sampleDistance, out NavMeshHit hit))
             {
                 return false;
             }
 
+            if (!agent.enabled)
+            {
+                agent.enabled = true;
+            }
+
             return agent.Warp(hit.position);
+        }
+
+        private bool TryFindNavMeshPosition(Vector3 sourcePosition, float maxDistance, out NavMeshHit hit)
+        {
+            if (NavMesh.SamplePosition(sourcePosition, out hit, maxDistance, NavMesh.AllAreas)
+                && Mathf.Abs(hit.position.y - sourcePosition.y) <= navMeshSnapVerticalTolerance)
+            {
+                return true;
+            }
+
+            return TryFindSameElevationNavMeshPosition(sourcePosition, maxDistance, out hit);
+        }
+
+        private bool TryFindSameElevationNavMeshPosition(Vector3 sourcePosition, float maxDistance, out NavMeshHit hit)
+        {
+            hit = default;
+
+            NavMeshTriangulation triangulation = NavMesh.CalculateTriangulation();
+            Vector3 closestVertex = default;
+            float closestPlanarDistance = float.PositiveInfinity;
+
+            foreach (Vector3 vertex in triangulation.vertices)
+            {
+                if (Mathf.Abs(vertex.y - sourcePosition.y) > navMeshSnapVerticalTolerance)
+                {
+                    continue;
+                }
+
+                Vector3 planarOffset = Vector3.ProjectOnPlane(vertex - sourcePosition, Vector3.up);
+                float planarDistance = planarOffset.magnitude;
+                if (planarDistance > maxDistance || planarDistance >= closestPlanarDistance)
+                {
+                    continue;
+                }
+
+                closestVertex = vertex;
+                closestPlanarDistance = planarDistance;
+            }
+
+            return !float.IsPositiveInfinity(closestPlanarDistance)
+                && NavMesh.SamplePosition(closestVertex, out hit, 0.1f, NavMesh.AllAreas)
+                && Mathf.Abs(hit.position.y - sourcePosition.y) <= navMeshSnapVerticalTolerance;
         }
 
         public bool SetDestination(Vector3 destination, float stoppingDistance = 0f)
@@ -94,6 +155,32 @@ namespace TacticalEcho.AI.Navigation
             {
                 agent = GetComponent<NavMeshAgent>();
             }
+        }
+
+        private void ResolveAnimationController()
+        {
+            if (animationController == null)
+            {
+                animationController = GetComponent<EnemyAnimationController>();
+            }
+        }
+
+        private void UpdateLocomotionAnimation()
+        {
+            ResolveAnimationController();
+            if (animationController == null)
+            {
+                return;
+            }
+
+            float normalizedSpeed = 0f;
+            if (IsOnNavMesh && agent.speed > 0.001f)
+            {
+                Vector3 planarVelocity = Vector3.ProjectOnPlane(agent.velocity, Vector3.up);
+                normalizedSpeed = Mathf.Clamp01(planarVelocity.magnitude / agent.speed);
+            }
+
+            animationController.SetLocomotion(normalizedSpeed);
         }
     }
 }

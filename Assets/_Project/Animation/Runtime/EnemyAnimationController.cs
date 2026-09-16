@@ -11,9 +11,15 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         [SerializeField] private Animator animator;
 
-        public void SetLocomotion(float speed) => animator?.SetFloat(SpeedHash, speed);
+        public void Configure(Animator newAnimator)
+        {
+            animator = newAnimator;
+        }
+
+        public void SetLocomotion(float speed) => animator?.SetFloat(SpeedHash, Mathf.Clamp01(speed));
         public void SetAim(bool isAiming) => animator?.SetBool(AimHash, isAiming);
         public void PlayFire() => animator?.SetTrigger(FireHash);
         public void PlayReload() => animator?.SetTrigger(ReloadHash);
+        public void PlayDeath() => DeathAnimationPlayer.Play(animator);
     }
 }

@@ -2,7 +2,7 @@ using TacticalEcho.AI.Brain;
 using TacticalEcho.AI.Memory;
 using TacticalEcho.AI.Navigation;
 using TacticalEcho.AI.Perception;
-using TacticalEcho.AI.States;
+using TacticalEcho.AnimationSystem.Runtime;
 using TacticalEcho.Character.Player;
 using TacticalEcho.Combat.Damage;
 using TacticalEcho.Combat.Health;
@@ -101,7 +101,8 @@ namespace TacticalEcho.AI.Debugging
                 Physics.DefaultRaycastLayers);
 
             brain.ConfigurePerception(vision, hearing, memory);
-            brain.ConfigureExecution(movement, null, health);
+            EnemyAnimationController animationController = enemy.GetComponent<EnemyAnimationController>();
+            brain.ConfigureExecution(movement, null, health, animationController);
             gizmos?.Configure(brain);
 
             Transform labelRoot = enemy.transform.Find("AI_StatusCanvas");
@@ -297,7 +298,7 @@ namespace TacticalEcho.AI.Debugging
                 return;
             }
 
-            DeleteSceneEnemy(scene);
+            DeleteSceneEnemies(scene);
 
             if (AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath) != null)
             {
@@ -347,8 +348,10 @@ namespace TacticalEcho.AI.Debugging
 
             if (prefabRebuilt)
             {
-                DeleteSceneEnemy(scene);
+                DeleteSceneEnemies(scene);
             }
+
+            RemoveDuplicateSceneEnemies(scene);
 
             bool instanceCreated = EnsureEnemyInstance(scene);
             if (!instanceCreated)
@@ -412,8 +415,9 @@ namespace TacticalEcho.AI.Debugging
                 && prefab.GetComponent<HearingSensor>() != null
                 && prefab.GetComponent<EnemyMemory>() != null
                 && prefab.GetComponent<Health>() != null
+                && prefab.GetComponent<NavMeshAgent>() is { enabled: false }
                 && prefab.GetComponent<EnemyAIGizmos>() != null
-                && prefab.GetComponent<EnemyPerceptionDemoView>() != null
+                && prefab.GetComponent<EnemyPerceptionDemoView>() is { HasAuthoringContract: true }
                 && prefab.transform.Find("EyeOrigin") != null
                 && prefab.transform.Find("AI_StatusCanvas") != null;
         }
@@ -430,7 +434,8 @@ namespace TacticalEcho.AI.Debugging
                 acceleration: 14f,
                 radius: 0.28f,
                 height: 1.7f,
-                updateRotation: false);
+                updateRotation: true);
+            enemy.GetComponent<NavMeshAgent>().enabled = false;
 
             HearingSensor hearing = enemy.AddComponent<HearingSensor>();
             EnemyMemory memory = enemy.AddComponent<EnemyMemory>();
@@ -449,12 +454,19 @@ namespace TacticalEcho.AI.Debugging
 
             EnemyBrain brain = enemy.AddComponent<EnemyBrain>();
             brain.ConfigurePerception(vision, hearing, memory);
-            brain.ConfigureExecution(movement, null, health);
 
             EnemyAIGizmos gizmos = enemy.AddComponent<EnemyAIGizmos>();
             gizmos.Configure(brain);
 
             GameObject visualClone = AddKaiaVisual(enemy.transform);
+            Animator animator = visualClone != null
+                ? visualClone.GetComponentInChildren<Animator>(true)
+                : null;
+            EnemyAnimationController animationController = enemy.AddComponent<EnemyAnimationController>();
+            animationController.Configure(animator);
+            movement.ConfigureAnimation(animationController);
+            brain.ConfigureExecution(movement, null, health, animationController);
+
             CreateMeshAlignedHitZones(visualClone, enemy);
 
             CreateStatusLabel(enemy.transform, out TMP_Text statusText, out Transform labelRoot);
@@ -626,10 +638,10 @@ namespace TacticalEcho.AI.Debugging
             textRect.offsetMax = Vector2.zero;
 
             TextMeshProUGUI text = textObject.AddComponent<TextMeshProUGUI>();
-            text.text = "AI TEST\nPATROL\nNAV CHECK";
+            text.text = "AI TEST\nEDIT MODE\nNAV CHECK ON PLAY\nHP -- / 100";
             text.fontSize = 26f;
             text.alignment = TextAlignmentOptions.Center;
-            text.enableWordWrapping = false;
+            text.textWrappingMode = TextWrappingModes.NoWrap;
             text.raycastTarget = false;
             text.color = Color.white;
 
@@ -728,20 +740,78 @@ namespace TacticalEcho.AI.Debugging
                 return null;
             }
 
-            Transform enemy = parent.transform.Find(EnemyInstanceName);
-            return enemy != null ? enemy.gameObject : null;
+            for (int i = 0; i < parent.transform.childCount; i++)
+            {
+                Transform child = parent.transform.GetChild(i);
+                if (child.GetComponent<EnemyPerceptionDemoView>() != null)
+                {
+                    return child.gameObject;
+                }
+            }
+
+            for (int i = 0; i < parent.transform.childCount; i++)
+            {
+                Transform child = parent.transform.GetChild(i);
+                if (IsDemoEnemyCandidate(child))
+                {
+                    return child.gameObject;
+                }
+            }
+
+            return null;
         }
 
-        private static void DeleteSceneEnemy(Scene scene)
+        private static void DeleteSceneEnemies(Scene scene)
         {
-            GameObject enemy = FindSceneEnemy(scene);
-            if (enemy == null)
+            GameObject parent = FindRootObject(scene, EnemyParentName);
+            if (parent == null)
             {
                 return;
             }
 
-            Object.DestroyImmediate(enemy);
-            EditorSceneManager.MarkSceneDirty(scene);
+            for (int i = parent.transform.childCount - 1; i >= 0; i--)
+            {
+                Transform child = parent.transform.GetChild(i);
+                if (IsDemoEnemyCandidate(child))
+                {
+                    Object.DestroyImmediate(child.gameObject);
+                    EditorSceneManager.MarkSceneDirty(scene);
+                }
+            }
+        }
+
+        private static void RemoveDuplicateSceneEnemies(Scene scene)
+        {
+            GameObject parent = FindRootObject(scene, EnemyParentName);
+            if (parent == null)
+            {
+                return;
+            }
+
+            GameObject primary = FindSceneEnemy(scene);
+            if (primary == null)
+            {
+                return;
+            }
+
+            for (int i = parent.transform.childCount - 1; i >= 0; i--)
+            {
+                Transform child = parent.transform.GetChild(i);
+                if (!IsDemoEnemyCandidate(child) || child.gameObject == primary)
+                {
+                    continue;
+                }
+
+                Object.DestroyImmediate(child.gameObject);
+                EditorSceneManager.MarkSceneDirty(scene);
+            }
+        }
+
+        private static bool IsDemoEnemyCandidate(Transform child)
+        {
+            return child.name == EnemyInstanceName
+                || child.GetComponent<EnemyPerceptionDemoView>() != null
+                || child.GetComponent<EnemyBrain>() != null;
         }
 
         private static GameObject FindRootObject(Scene scene, string objectName)
@@ -776,153 +846,4 @@ namespace TacticalEcho.AI.Debugging
 #endif
     }
 
-    public sealed class EnemyPerceptionDemoView : MonoBehaviour
-    {
-        [SerializeField, Min(0.01f)] private float turnSharpness = 8f;
-
-        private EnemyBrain brain;
-        private Health health;
-        private TMP_Text statusText;
-        private Transform labelRoot;
-        private Camera mainCamera;
-        private EnemyStateId previousState = (EnemyStateId)(-1);
-        private int previousHealth = -1;
-        private bool previousNavigationReady;
-        private bool hasPreviousNavigationState;
-
-        public void Configure(EnemyBrain newBrain, Health newHealth, TMP_Text newStatusText, Transform newLabelRoot)
-        {
-            brain = newBrain;
-            health = newHealth;
-            statusText = newStatusText;
-            labelRoot = newLabelRoot;
-            RefreshStatus(force: true);
-        }
-
-        private void Update()
-        {
-            if (brain == null)
-            {
-                return;
-            }
-
-            RotateTowardPerceivedPosition();
-            FaceStatusTowardCamera();
-            RefreshStatus(force: false);
-        }
-
-        private void RotateTowardPerceivedPosition()
-        {
-            Vector3 targetPosition;
-
-            if (brain.CurrentState == EnemyStateId.Combat && brain.Vision != null && brain.Vision.VisibleTarget != null)
-            {
-                targetPosition = brain.Vision.VisibleTarget.position;
-            }
-            else if ((brain.CurrentState == EnemyStateId.Investigate || brain.CurrentState == EnemyStateId.Search)
-                     && brain.Memory != null
-                     && brain.Memory.HasKnownPosition)
-            {
-                targetPosition = brain.Memory.LastKnownPosition;
-            }
-            else
-            {
-                return;
-            }
-
-            Vector3 direction = targetPosition - transform.position;
-            direction.y = 0f;
-            if (direction.sqrMagnitude <= 0.001f)
-            {
-                return;
-            }
-
-            Quaternion desiredRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
-            float t = 1f - Mathf.Exp(-turnSharpness * Time.deltaTime);
-            transform.rotation = Quaternion.Slerp(transform.rotation, desiredRotation, t);
-        }
-
-        private void FaceStatusTowardCamera()
-        {
-            if (labelRoot == null)
-            {
-                return;
-            }
-
-            if (mainCamera == null)
-            {
-                mainCamera = Camera.main;
-            }
-
-            if (mainCamera == null)
-            {
-                return;
-            }
-
-            Vector3 direction = labelRoot.position - mainCamera.transform.position;
-            if (direction.sqrMagnitude > 0.001f)
-            {
-                labelRoot.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
-            }
-        }
-
-        private void RefreshStatus(bool force)
-        {
-            if (statusText == null || brain == null)
-            {
-                return;
-            }
-
-            int currentHealth = health != null ? Mathf.CeilToInt(health.Current) : 0;
-            bool navigationReady = brain.Movement != null && brain.Movement.IsOnNavMesh;
-            if (!force
-                && previousState == brain.CurrentState
-                && previousHealth == currentHealth
-                && hasPreviousNavigationState
-                && previousNavigationReady == navigationReady)
-            {
-                return;
-            }
-
-            previousState = brain.CurrentState;
-            previousHealth = currentHealth;
-            previousNavigationReady = navigationReady;
-            hasPreviousNavigationState = true;
-
-            string stateDescription;
-            Color stateColor;
-
-            switch (brain.CurrentState)
-            {
-                case EnemyStateId.Investigate:
-                    stateDescription = "INVESTIGATE - HEARD SHOT";
-                    stateColor = Color.yellow;
-                    break;
-                case EnemyStateId.Combat:
-                    stateDescription = "COMBAT - SEES PLAYER";
-                    stateColor = new Color(1f, 0.25f, 0.2f, 1f);
-                    break;
-                case EnemyStateId.Search:
-                    stateDescription = "SEARCH - LAST KNOWN";
-                    stateColor = Color.cyan;
-                    break;
-                case EnemyStateId.Dead:
-                    stateDescription = "DEAD";
-                    stateColor = Color.gray;
-                    break;
-                default:
-                    stateDescription = "PATROL - NO CONTACT";
-                    stateColor = Color.white;
-                    break;
-            }
-
-            string healthLine = health != null
-                ? $"HP {health.Current:0} / {health.Max:0}"
-                : string.Empty;
-            string navigationLine = navigationReady ? "NAV READY" : "NAV NOT READY";
-
-            statusText.text = $"AI TEST\n{stateDescription}\n{navigationLine}\n{healthLine}";
-            statusText.color = stateColor;
-        }
-    }
 }

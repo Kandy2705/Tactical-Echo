@@ -23,6 +23,7 @@ namespace TacticalEcho.AI.Brain
         [SerializeField] private EnemyMovement movement;
         [SerializeField] private WeaponController weapon;
         [SerializeField] private Health health;
+        [SerializeField] private EnemyAnimationController animationController;
 
         [Header("Decision")]
         [SerializeField] private TacticalEvaluator tacticalEvaluator;
@@ -98,13 +99,18 @@ namespace TacticalEcho.AI.Brain
             memory = newMemory;
         }
 
-        public void ConfigureExecution(EnemyMovement newMovement, WeaponController newWeapon, Health newHealth)
+        public void ConfigureExecution(
+            EnemyMovement newMovement,
+            WeaponController newWeapon,
+            Health newHealth,
+            EnemyAnimationController newAnimationController = null)
         {
             UnbindHealthEvents();
 
             movement = newMovement;
             weapon = newWeapon;
             health = newHealth;
+            animationController = newAnimationController;
             isDead = health != null && !health.IsAlive;
 
             if (isActiveAndEnabled)
@@ -180,8 +186,7 @@ namespace TacticalEcho.AI.Brain
             weapon?.CancelReload();
             ChangeState(EnemyStateId.Dead);
 
-            Animator animator = GetComponentInChildren<Animator>(true);
-            DeathAnimationPlayer.Play(animator);
+            animationController?.PlayDeath();
         }
 
         private void UpdatePerceptionDrivenState(bool canSeeTarget, bool heardNoise)
