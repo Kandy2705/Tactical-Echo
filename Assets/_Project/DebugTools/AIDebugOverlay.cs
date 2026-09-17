@@ -26,17 +26,33 @@ namespace TacticalEcho.DebugTools
 
             if (observedBrain.TacticalEvaluator != null)
             {
-                builder.Append("Action: ").AppendLine(observedBrain.TacticalEvaluator.LastDecision.ToString());
-                foreach (KeyValuePair<TacticalActionId, float> pair in observedBrain.TacticalEvaluator.LastScores)
+                TacticalEvaluator evaluator = observedBrain.TacticalEvaluator;
+                builder.Append("Selected: ")
+                    .Append(evaluator.LastDecision)
+                    .Append(" (")
+                    .Append(evaluator.LastDecisionScore.ToString("0.00"))
+                    .AppendLine(")");
+
+                builder.Append("Highest: ")
+                    .Append(evaluator.LastHighestScoreAction)
+                    .Append(" (")
+                    .Append(evaluator.LastHighestScore.ToString("0.00"))
+                    .AppendLine(")");
+
+                foreach (KeyValuePair<TacticalActionId, float> pair in evaluator.LastScores)
                 {
-                    builder.Append(pair.Key).Append(": ").AppendLine(pair.Value.ToString("0.00"));
+                    builder.Append(pair.Key)
+                        .Append(": ")
+                        .AppendLine(pair.Value.ToString("0.00"));
                 }
             }
 
             if (observedBrain.Memory != null && observedBrain.Memory.HasKnownPosition)
             {
-                builder.Append("Memory confidence: ").AppendLine(observedBrain.Memory.Confidence.ToString("0.00"));
-                builder.Append("Last known: ").AppendLine(observedBrain.Memory.LastKnownPosition.ToString("F1"));
+                builder.Append("Memory confidence: ")
+                    .AppendLine(observedBrain.Memory.Confidence.ToString("0.00"));
+                builder.Append("Last known: ")
+                    .AppendLine(observedBrain.Memory.LastKnownPosition.ToString("F1"));
             }
 
             outputText.text = builder.ToString();

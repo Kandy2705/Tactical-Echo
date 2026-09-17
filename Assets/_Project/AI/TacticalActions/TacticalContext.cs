@@ -8,6 +8,8 @@ namespace TacticalEcho.AI.TacticalActions
         public Vector3 CoverPosition;
         public float TargetDistance;
         public float PreferredRangeScore;
+        public float TooCloseScore;
+        public float TooFarScore;
         public float HealthRatio;
         public float AmmoRatio;
         public float Threat;

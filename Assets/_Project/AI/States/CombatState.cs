@@ -12,12 +12,12 @@ namespace TacticalEcho.AI.States
 
         public override void Enter()
         {
-            TickCombat();
+            TickCombat(forceEvaluation: true);
         }
 
         public override void Tick(float deltaTime)
         {
-            TickCombat();
+            TickCombat(forceEvaluation: false);
         }
 
         public override void Exit()
@@ -26,7 +26,7 @@ namespace TacticalEcho.AI.States
             Brain.AnimationController?.SetAim(false);
         }
 
-        private void TickCombat()
+        private void TickCombat(bool forceEvaluation)
         {
             if (Brain.TacticalEvaluator == null)
             {
@@ -35,7 +35,7 @@ namespace TacticalEcho.AI.States
             }
 
             TacticalContext context = Brain.BuildTacticalContext();
-            ITacticalAction action = Brain.TacticalEvaluator.Evaluate(context);
+            ITacticalAction action = Brain.TacticalEvaluator.Evaluate(context, forceEvaluation);
             if (action == null)
             {
                 Brain.Movement?.Stop();
