@@ -10,6 +10,7 @@ namespace TacticalEcho.AI.States
         {
             Brain.Movement?.Stop();
             Brain.Weapon?.CancelReload();
+            Brain.AnimationController?.PlayDeath();
         }
     }
 }
