@@ -1,5 +1,6 @@
 using TacticalEcho.AI.Brain;
 using TacticalEcho.AI.States;
+using TacticalEcho.AI.TacticalActions;
 using TacticalEcho.Combat.Health;
 using TMPro;
 using UnityEngine;
@@ -7,7 +8,7 @@ using UnityEngine;
 namespace TacticalEcho.AI.Debugging
 {
     /// <summary>
-    /// Read-only presentation for the sandbox perception demo.
+    /// Read-only presentation for the sandbox AI demo.
     /// The view observes the authored enemy and never controls its AI or movement.
     /// </summary>
     public sealed class EnemyPerceptionDemoView : MonoBehaviour
@@ -20,6 +21,7 @@ namespace TacticalEcho.AI.Debugging
         private Transform labelRoot;
         private Camera mainCamera;
         private EnemyStateId previousState = (EnemyStateId)(-1);
+        private TacticalActionId previousAction = (TacticalActionId)(-1);
         private int previousHealth = -1;
         private bool previousNavigationReady;
         private bool hasPreviousNavigationState;
@@ -34,74 +36,48 @@ namespace TacticalEcho.AI.Debugging
             statusText = newStatusText;
             labelRoot = newLabelRoot;
 
-            if (Application.isPlaying)
-            {
-                RefreshStatus(force: true);
-            }
-            else
-            {
-                ShowEditModeStatus();
-            }
+            if (Application.isPlaying) RefreshStatus(force: true);
+            else ShowEditModeStatus();
         }
 
         private void Update()
         {
-            if (!Application.isPlaying || brain == null)
-            {
-                return;
-            }
-
+            if (!Application.isPlaying || brain == null) return;
             FaceStatusTowardCamera();
             RefreshStatus(force: false);
         }
 
         private void FaceStatusTowardCamera()
         {
-            if (labelRoot == null)
-            {
-                return;
-            }
-
-            if (mainCamera == null)
-            {
-                mainCamera = Camera.main;
-            }
-
-            if (mainCamera == null)
-            {
-                return;
-            }
+            if (labelRoot == null) return;
+            if (mainCamera == null) mainCamera = Camera.main;
+            if (mainCamera == null) return;
 
             Vector3 direction = labelRoot.position - mainCamera.transform.position;
-            if (direction.sqrMagnitude > 0.001f)
-            {
-                labelRoot.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
-            }
+            if (direction.sqrMagnitude > 0.001f) labelRoot.rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
         }
 
         private void ShowEditModeStatus()
         {
-            if (statusText == null)
-            {
-                return;
-            }
-
+            if (statusText == null) return;
             float maxHealth = health != null ? health.Max : 100f;
-            statusText.text = $"AI TEST\nEDIT MODE\nNAV CHECK ON PLAY\nHP -- / {maxHealth:0}";
+            statusText.text = $"AI TEST\nEDIT MODE\nTACTICAL CHECK ON PLAY\nHP -- / {maxHealth:0}";
             statusText.color = Color.white;
         }
 
         private void RefreshStatus(bool force)
         {
-            if (statusText == null || brain == null)
-            {
-                return;
-            }
+            if (statusText == null || brain == null) return;
 
             int currentHealth = health != null ? Mathf.CeilToInt(health.Current) : 0;
             bool navigationReady = brain.Movement != null && brain.Movement.IsOnNavMesh;
+            TacticalActionId currentAction = brain.TacticalEvaluator != null
+                ? brain.TacticalEvaluator.LastDecision
+                : TacticalActionId.None;
+
             if (!force
                 && previousState == brain.CurrentState
+                && previousAction == currentAction
                 && previousHealth == currentHealth
                 && hasPreviousNavigationState
                 && previousNavigationReady == navigationReady)
@@ -110,13 +86,13 @@ namespace TacticalEcho.AI.Debugging
             }
 
             previousState = brain.CurrentState;
+            previousAction = currentAction;
             previousHealth = currentHealth;
             previousNavigationReady = navigationReady;
             hasPreviousNavigationState = true;
 
             string stateDescription;
             Color stateColor;
-
             switch (brain.CurrentState)
             {
                 case EnemyStateId.Investigate:
@@ -131,6 +107,10 @@ namespace TacticalEcho.AI.Debugging
                     stateDescription = "SEARCH - LAST KNOWN";
                     stateColor = Color.cyan;
                     break;
+                case EnemyStateId.Retreat:
+                    stateDescription = "RETREAT";
+                    stateColor = new Color(1f, 0.55f, 0.15f, 1f);
+                    break;
                 case EnemyStateId.Dead:
                     stateDescription = "DEAD";
                     stateColor = Color.gray;
@@ -141,12 +121,13 @@ namespace TacticalEcho.AI.Debugging
                     break;
             }
 
-            string healthLine = health != null
-                ? $"HP {health.Current:0} / {health.Max:0}"
-                : string.Empty;
+            string actionLine = brain.CurrentState == EnemyStateId.Combat && brain.TacticalEvaluator != null
+                ? $"ACTION {currentAction.ToString().ToUpperInvariant()}"
+                : "ACTION --";
+            string healthLine = health != null ? $"HP {health.Current:0} / {health.Max:0}" : string.Empty;
             string navigationLine = navigationReady ? "NAV READY" : "NAV NOT READY";
 
-            statusText.text = $"AI TEST\n{stateDescription}\n{navigationLine}\n{healthLine}";
+            statusText.text = $"AI TEST\n{stateDescription}\n{actionLine}\n{navigationLine}\n{healthLine}";
             statusText.color = stateColor;
         }
     }

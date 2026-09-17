@@ -1,3 +1,4 @@
+using TacticalEcho.AI.Cover;
 using TacticalEcho.AI.Memory;
 using TacticalEcho.AI.Navigation;
 using TacticalEcho.AI.Perception;
@@ -27,6 +28,7 @@ namespace TacticalEcho.AI.Brain
 
         [Header("Decision")]
         [SerializeField] private TacticalEvaluator tacticalEvaluator;
+        [SerializeField] private CoverEvaluator coverEvaluator;
 
         private readonly StateMachine<EnemyStateId> stateMachine = new();
         private Health subscribedHealth;
@@ -40,6 +42,7 @@ namespace TacticalEcho.AI.Brain
         public WeaponController Weapon => weapon;
         public EnemyAnimationController AnimationController => animationController;
         public TacticalEvaluator TacticalEvaluator => tacticalEvaluator;
+        public CoverEvaluator CoverEvaluator => coverEvaluator;
         public Health Health => health;
 
         private void Awake()
@@ -120,30 +123,91 @@ namespace TacticalEcho.AI.Brain
             }
         }
 
+        public void ConfigureDecision(TacticalEvaluator newTacticalEvaluator, CoverEvaluator newCoverEvaluator)
+        {
+            tacticalEvaluator = newTacticalEvaluator;
+            coverEvaluator = newCoverEvaluator;
+        }
+
         public bool ChangeState(EnemyStateId nextState)
         {
             return stateMachine.ChangeState(nextState);
         }
 
+        public TacticalContext BuildTacticalContext()
+        {
+            return BuildTacticalContextInternal(suppression: 0f, threatOverride: -1f, coverOverride: false);
+        }
+
         public TacticalContext BuildTacticalContext(bool coverAvailable, float threat, float suppression)
         {
-            float targetDistance = memory != null && memory.HasKnownPosition
-                ? Vector3.Distance(transform.position, memory.LastKnownPosition)
+            TacticalContext context = BuildTacticalContextInternal(
+                suppression,
+                Mathf.Clamp01(threat),
+                coverAvailable);
+            return context;
+        }
+
+        private TacticalContext BuildTacticalContextInternal(
+            float suppression,
+            float threatOverride,
+            bool coverOverride)
+        {
+            bool hasTargetPosition = memory != null && memory.HasKnownPosition;
+            Vector3 targetPosition = hasTargetPosition ? memory.LastKnownPosition : default;
+            float targetDistance = hasTargetPosition
+                ? Vector3.Distance(transform.position, targetPosition)
                 : float.MaxValue;
 
-            float preferredRangeScore = Mathf.Clamp01(1f - Mathf.Abs(targetDistance - 12f) / 12f);
+            float preferredRangeScore = hasTargetPosition
+                ? Mathf.Clamp01(1f - Mathf.Abs(targetDistance - 12f) / 12f)
+                : 0f;
+
+            WeaponRuntime runtime = weapon != null ? weapon.Runtime : null;
+            bool isReloading = runtime != null && runtime.IsReloading;
+            bool canFire = runtime != null && runtime.CanFire(Time.time);
+            bool canReload = runtime != null
+                             && !runtime.IsReloading
+                             && runtime.HasReserveAmmo
+                             && runtime.MagazineAmmo < runtime.Definition.MagazineSize;
+
+            bool coverAvailable = false;
+            Vector3 coverPosition = default;
+            if (hasTargetPosition
+                && coverEvaluator != null
+                && coverEvaluator.TryFindBestCover(transform.position, targetPosition, out CoverPoint bestCover))
+            {
+                coverAvailable = true;
+                coverPosition = bestCover.Position;
+            }
+
+            coverAvailable |= coverOverride;
+
+            float threat = threatOverride >= 0f
+                ? threatOverride
+                : vision != null && vision.HasLineOfSight
+                    ? 1f
+                    : memory != null
+                        ? memory.Confidence
+                        : 0f;
 
             return new TacticalContext
             {
+                TargetPosition = targetPosition,
+                CoverPosition = coverPosition,
                 TargetDistance = targetDistance,
                 PreferredRangeScore = preferredRangeScore,
                 HealthRatio = health != null ? health.Normalized : 1f,
-                AmmoRatio = weapon != null && weapon.Runtime != null ? weapon.Runtime.AmmoRatio : 0f,
+                AmmoRatio = runtime != null ? runtime.AmmoRatio : 0f,
                 Threat = Mathf.Clamp01(threat),
                 Suppression = Mathf.Clamp01(suppression),
-                HasLineOfSight = vision != null && vision.HasLineOfSight,
+                HasTargetPosition = hasTargetPosition,
+                HasLineOfSight = vision != null && vision.HasLineOfSight && vision.VisibleTarget != null,
                 CoverAvailable = coverAvailable,
-                PathAvailable = movement != null
+                PathAvailable = movement != null && movement.IsOnNavMesh,
+                CanFire = canFire,
+                CanReload = canReload,
+                IsReloading = isReloading
             };
         }
 
@@ -191,6 +255,13 @@ namespace TacticalEcho.AI.Brain
             if (health != null && !health.IsAlive)
             {
                 HandleDied();
+                return;
+            }
+
+            // Retreat owns its lifecycle once chosen. Perception and memory still update,
+            // but Combat must not immediately overwrite the retreat state on the next frame.
+            if (CurrentState == EnemyStateId.Retreat)
+            {
                 return;
             }
 
