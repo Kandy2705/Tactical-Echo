@@ -7,16 +7,24 @@ namespace TacticalEcho.AI.Cover
     public sealed class CoverEvaluator : MonoBehaviour
     {
         [SerializeField, Min(0.1f)] private float searchRadius = 15f;
-        [SerializeField] private LayerMask obstructionMask;
+        [SerializeField] private LayerMask obstructionMask = ~0;
 
         private readonly List<CoverPoint> coverPoints = new();
 
         public void SetCoverPoints(IEnumerable<CoverPoint> points)
         {
             coverPoints.Clear();
-            if (points != null)
+            if (points == null)
             {
-                coverPoints.AddRange(points);
+                return;
+            }
+
+            foreach (CoverPoint point in points)
+            {
+                if (point != null)
+                {
+                    coverPoints.Add(point);
+                }
             }
         }
 
@@ -38,7 +46,17 @@ namespace TacticalEcho.AI.Cover
                 }
 
                 Vector3 toThreat = threatPosition - point.Position;
-                bool isExposed = Physics.Raycast(point.Position + Vector3.up, toThreat.normalized, toThreat.magnitude, obstructionMask, QueryTriggerInteraction.Ignore) == false;
+                if (toThreat.sqrMagnitude <= 0.001f)
+                {
+                    continue;
+                }
+
+                bool isExposed = Physics.Raycast(
+                    point.Position + Vector3.up,
+                    toThreat.normalized,
+                    toThreat.magnitude,
+                    obstructionMask,
+                    QueryTriggerInteraction.Ignore) == false;
                 if (isExposed)
                 {
                     continue;

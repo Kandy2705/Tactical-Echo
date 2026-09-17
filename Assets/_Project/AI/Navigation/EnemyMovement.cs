@@ -10,6 +10,7 @@ namespace TacticalEcho.AI.Navigation
         [SerializeField, Min(0f)] private float stoppingTolerance = 0.25f;
         [SerializeField, Min(0f)] private float navMeshSnapDistance = 2f;
         [SerializeField, Min(0f)] private float navMeshSnapVerticalTolerance = 1f;
+        [SerializeField, Min(0f)] private float rotationSharpness = 12f;
         [SerializeField] private EnemyAnimationController animationController;
 
         private NavMeshAgent agent;
@@ -86,6 +87,47 @@ namespace TacticalEcho.AI.Navigation
             return agent.Warp(hit.position);
         }
 
+        public bool SetDestination(Vector3 destination, float stoppingDistance = 0f)
+        {
+            if (!TrySnapToNavMesh())
+            {
+                return false;
+            }
+
+            if (!TryFindNavMeshPosition(destination, navMeshSnapDistance, out NavMeshHit destinationHit))
+            {
+                return false;
+            }
+
+            agent.stoppingDistance = Mathf.Max(0f, stoppingDistance);
+            return agent.SetDestination(destinationHit.position);
+        }
+
+        public void Stop()
+        {
+            if (!IsOnNavMesh)
+            {
+                return;
+            }
+
+            agent.ResetPath();
+        }
+
+        public void FacePosition(Vector3 worldPosition)
+        {
+            Vector3 direction = Vector3.ProjectOnPlane(worldPosition - transform.position, Vector3.up);
+            if (direction.sqrMagnitude <= 0.001f)
+            {
+                return;
+            }
+
+            Quaternion desiredRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+            float t = rotationSharpness <= 0f
+                ? 1f
+                : 1f - Mathf.Exp(-rotationSharpness * Time.deltaTime);
+            transform.rotation = Quaternion.Slerp(transform.rotation, desiredRotation, t);
+        }
+
         private bool TryFindNavMeshPosition(Vector3 sourcePosition, float maxDistance, out NavMeshHit hit)
         {
             if (NavMesh.SamplePosition(sourcePosition, out hit, maxDistance, NavMesh.AllAreas)
@@ -126,27 +168,6 @@ namespace TacticalEcho.AI.Navigation
             return !float.IsPositiveInfinity(closestPlanarDistance)
                 && NavMesh.SamplePosition(closestVertex, out hit, 0.1f, NavMesh.AllAreas)
                 && Mathf.Abs(hit.position.y - sourcePosition.y) <= navMeshSnapVerticalTolerance;
-        }
-
-        public bool SetDestination(Vector3 destination, float stoppingDistance = 0f)
-        {
-            if (!TrySnapToNavMesh())
-            {
-                return false;
-            }
-
-            agent.stoppingDistance = Mathf.Max(0f, stoppingDistance);
-            return agent.SetDestination(destination);
-        }
-
-        public void Stop()
-        {
-            if (!IsOnNavMesh)
-            {
-                return;
-            }
-
-            agent.ResetPath();
         }
 
         private void ResolveAgent()

@@ -24,12 +24,18 @@ namespace TacticalEcho.AI.TacticalActions
         public ITacticalAction Evaluate(in TacticalContext context)
         {
             ITacticalAction bestAction = null;
-            float bestScore = float.MinValue;
+            float bestScore = 0f;
             lastScores.Clear();
 
             foreach (ITacticalAction action in actions)
             {
-                float score = action.CanExecute(context) ? action.Score(context) : 0f;
+                if (!action.CanExecute(context))
+                {
+                    lastScores[action.Id] = 0f;
+                    continue;
+                }
+
+                float score = Mathf.Max(0f, action.Score(context));
                 lastScores[action.Id] = score;
 
                 if (score <= bestScore)

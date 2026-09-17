@@ -45,6 +45,15 @@ namespace TacticalEcho.AI.Perception
 
         private void OnNoiseEmitted(NoiseEventData noise)
         {
+            if (noise.Source != null)
+            {
+                Transform sourceTransform = noise.Source.transform;
+                if (sourceTransform == transform || sourceTransform.IsChildOf(transform))
+                {
+                    return;
+                }
+            }
+
             float audibleRadius = noise.Radius * hearingMultiplier * Mathf.Max(0f, noise.Intensity);
             if ((noise.Position - transform.position).sqrMagnitude > audibleRadius * audibleRadius)
             {
