@@ -38,6 +38,7 @@ namespace TacticalEcho.AI.Brain
         public EnemyMemory Memory => memory;
         public EnemyMovement Movement => movement;
         public WeaponController Weapon => weapon;
+        public EnemyAnimationController AnimationController => animationController;
         public TacticalEvaluator TacticalEvaluator => tacticalEvaluator;
         public Health Health => health;
 
@@ -182,11 +183,7 @@ namespace TacticalEcho.AI.Brain
             }
 
             isDead = true;
-            movement?.Stop();
-            weapon?.CancelReload();
             ChangeState(EnemyStateId.Dead);
-
-            animationController?.PlayDeath();
         }
 
         private void UpdatePerceptionDrivenState(bool canSeeTarget, bool heardNoise)
