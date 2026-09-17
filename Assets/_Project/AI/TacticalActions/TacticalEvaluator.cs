@@ -5,10 +5,20 @@ namespace TacticalEcho.AI.TacticalActions
 {
     public sealed class TacticalEvaluator : MonoBehaviour
     {
+        [Header("Decision Stability")]
+        [SerializeField, Min(0f)] private float decisionInterval = 0.15f;
+        [SerializeField, Range(0f, 0.5f)] private float switchThreshold = 0.08f;
+
         private readonly List<ITacticalAction> actions = new();
         private readonly Dictionary<TacticalActionId, float> lastScores = new();
 
+        private ITacticalAction selectedAction;
+        private float nextEvaluationTime;
+
         public TacticalActionId LastDecision { get; private set; } = TacticalActionId.None;
+        public float LastDecisionScore { get; private set; }
+        public TacticalActionId LastHighestScoreAction { get; private set; } = TacticalActionId.None;
+        public float LastHighestScore { get; private set; }
         public IReadOnlyDictionary<TacticalActionId, float> LastScores => lastScores;
 
         private void Awake()
@@ -21,34 +31,58 @@ namespace TacticalEcho.AI.TacticalActions
             actions.Add(new RetreatAction());
         }
 
-        public ITacticalAction Evaluate(in TacticalContext context)
+        public ITacticalAction Evaluate(in TacticalContext context, bool force = false)
         {
-            ITacticalAction bestAction = null;
-            float bestScore = 0f;
+            bool selectedActionStillValid = selectedAction != null && selectedAction.CanExecute(context);
+            if (!force && selectedActionStillValid && Time.time < nextEvaluationTime)
+            {
+                return selectedAction;
+            }
+
+            ITacticalAction highestScoreAction = null;
+            float highestScore = 0f;
             lastScores.Clear();
 
             foreach (ITacticalAction action in actions)
             {
-                if (!action.CanExecute(context))
-                {
-                    lastScores[action.Id] = 0f;
-                    continue;
-                }
+                float score = action.CanExecute(context)
+                    ? Mathf.Clamp01(action.Score(context))
+                    : 0f;
 
-                float score = Mathf.Max(0f, action.Score(context));
                 lastScores[action.Id] = score;
 
-                if (score <= bestScore)
+                if (score <= highestScore)
                 {
                     continue;
                 }
 
-                bestScore = score;
-                bestAction = action;
+                highestScore = score;
+                highestScoreAction = action;
             }
 
-            LastDecision = bestAction?.Id ?? TacticalActionId.None;
-            return bestAction;
+            LastHighestScoreAction = highestScoreAction?.Id ?? TacticalActionId.None;
+            LastHighestScore = highestScore;
+
+            ITacticalAction nextAction = highestScoreAction;
+            float nextScore = highestScore;
+
+            if (selectedActionStillValid
+                && lastScores.TryGetValue(selectedAction.Id, out float selectedScore)
+                && selectedScore > 0f
+                && highestScoreAction != selectedAction
+                && highestScore < selectedScore + switchThreshold)
+            {
+                // Small score changes should not make the character flip between actions every frame.
+                // A challenger must beat the current action by a meaningful margin.
+                nextAction = selectedAction;
+                nextScore = selectedScore;
+            }
+
+            selectedAction = nextAction;
+            LastDecision = selectedAction?.Id ?? TacticalActionId.None;
+            LastDecisionScore = selectedAction != null ? nextScore : 0f;
+            nextEvaluationTime = Time.time + decisionInterval;
+            return selectedAction;
         }
     }
 }

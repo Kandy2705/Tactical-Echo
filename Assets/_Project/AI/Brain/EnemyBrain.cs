@@ -15,6 +15,8 @@ namespace TacticalEcho.AI.Brain
 {
     public sealed class EnemyBrain : MonoBehaviour
     {
+        private const float PreferredCombatRange = 12f;
+
         [Header("Perception")]
         [SerializeField] private VisionSensor vision;
         [SerializeField] private HearingSensor hearing;
@@ -141,11 +143,10 @@ namespace TacticalEcho.AI.Brain
 
         public TacticalContext BuildTacticalContext(bool coverAvailable, float threat, float suppression)
         {
-            TacticalContext context = BuildTacticalContextInternal(
+            return BuildTacticalContextInternal(
                 suppression,
                 Mathf.Clamp01(threat),
                 coverAvailable);
-            return context;
         }
 
         private TacticalContext BuildTacticalContextInternal(
@@ -159,9 +160,19 @@ namespace TacticalEcho.AI.Brain
                 ? Vector3.Distance(transform.position, targetPosition)
                 : float.MaxValue;
 
-            float preferredRangeScore = hasTargetPosition
-                ? Mathf.Clamp01(1f - Mathf.Abs(targetDistance - 12f) / 12f)
-                : 0f;
+            float preferredRangeScore = 0f;
+            float tooCloseScore = 0f;
+            float tooFarScore = 0f;
+            if (hasTargetPosition)
+            {
+                float signedRangeError = targetDistance - PreferredCombatRange;
+                preferredRangeScore = Mathf.Clamp01(
+                    1f - Mathf.Abs(signedRangeError) / PreferredCombatRange);
+                tooCloseScore = Mathf.Clamp01(
+                    Mathf.Max(0f, -signedRangeError) / PreferredCombatRange);
+                tooFarScore = Mathf.Clamp01(
+                    Mathf.Max(0f, signedRangeError) / PreferredCombatRange);
+            }
 
             WeaponRuntime runtime = weapon != null ? weapon.Runtime : null;
             bool isReloading = runtime != null && runtime.IsReloading;
@@ -197,6 +208,8 @@ namespace TacticalEcho.AI.Brain
                 CoverPosition = coverPosition,
                 TargetDistance = targetDistance,
                 PreferredRangeScore = preferredRangeScore,
+                TooCloseScore = tooCloseScore,
+                TooFarScore = tooFarScore,
                 HealthRatio = health != null ? health.Normalized : 1f,
                 AmmoRatio = runtime != null ? runtime.AmmoRatio : 0f,
                 Threat = Mathf.Clamp01(threat),
