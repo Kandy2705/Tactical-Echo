@@ -36,7 +36,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | Runtime ammo/reload/fire cooldown/spread | `WeaponRuntime.cs` | Mutable weapon state only. |
 | Hitscan firing, damage dispatch, reload execution, gun noise, on-hit status effect application (Suppression/Bleed), tracer/audio/muzzle feedback | `WeaponController.cs` | Weapon execution boundary used by Player and AI. |
 | Weapon audio clip data | `WeaponAudioProfile.cs` | Data only. |
-| Body-part multiplier/critical region | `DamageHitZone.cs` | Head/torso/arm/leg metadata. |
+| Body-part multiplier/critical region | `DamageHitZone.cs` | Head/torso/arm/leg metadata, and the `CharacterHitZone` layer that keeps body colliders shootable but physically inert. |
 | Damage request payload | `DamageInfo.cs` | Domain data only. |
 | Apply damage to a hit collider | `DamageSystem.cs` | Resolve `IDamageable` and invoke it. |
 | HP, death event | `Health.cs` | Shared Player/Enemy health owner. Reports `IsAlive` until initialized so observers cannot latch a death before `Awake()`. |
@@ -127,7 +127,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | `Combat/Damage/IDamageable.cs` | Shared damageable contract | A capability required by every damageable target | Concrete HP logic |
 | `Combat/Damage/DamageInfo.cs` | Immutable damage request data | More domain data every damage receiver needs | UI-only feedback |
 | `Combat/Damage/DamageSystem.cs` | Resolve an `IDamageable` from the hit collider and apply DamageInfo | Shared damage dispatch rules | Weapon raycast, HP storage, UI |
-| `Combat/Damage/DamageHitZone.cs` | Body region type, multiplier and critical flag | New hit region metadata/multiplier rules | HP mutation |
+| `Combat/Damage/DamageHitZone.cs` | Body region type, multiplier and critical flag, and the physics isolation of body-part colliders (`CharacterHitZone` layer, ignored against every collision layer) | New hit region metadata/multiplier rules; anything about how body colliders participate in physics | HP mutation |
 | `Combat/Damage/DamageFeedback.cs` | Resolved damage information for presentation | Additional presentation-safe result fields | Damage authority |
 | `Combat/Health/Health.cs` | Current/max HP, shared IDamageable implementation, HealthChanged/Died events, initialization contract (`IsAlive` is true until initialized, so `OnEnable` observers cannot read a full-health character as dead) | Healing/health reset only if they belong to universal Health semantics | Player/Enemy-specific death behavior |
 | `Combat/Impacts/SurfaceImpactSystem.cs` | Surface classification and pooled bullet-hole/blood hit presentation | Surface impact VFX/audio/pooling | Damage calculation or health |
@@ -236,6 +236,7 @@ Do **not** create a class merely because the feature has a new name, needs a few
 - Player Animator controller: `Assets/_Project/Animation/Controllers/Player_Kaia_Locomotion.controller`
 - Rifle definition: `Assets/_Project/Combat/Weapons/Definitions/Rifle_HK416.asset`
 - Status effect definitions: `Assets/_Project/Combat/StatusEffects/Definitions/Suppression_Standard.asset`, `Bleed_Standard.asset`
+- Physics layer `CharacterHitZone` (layer 17, `ProjectSettings/TagManager.asset`): every `DamageHitZone` collider lives here and the layer is ignored against all 32 layers at startup. Body-part colliders hang off animated bones, so as solid geometry they teleport into characters and a CharacterController resolves the overlap in one frame - that is what threw the player into the sky. Raycasts ignore the collision matrix, so weapons still hit them. Do not move hit zones back onto Default.
 - Shared death animation resource: `Assets/_ThirdParty/Animations/Resources/Death/Death_From_Front_Headshot.fbx` - imported as Humanoid so it retargets onto Kaia's Avatar; verify the auto-generated bone mapping under Rig > Configure... if it is ever reimported.
 
 The authored `WeaponMount`/gun pose is intentional. `WeaponHandIKController` provides left-hand support IK; the right hand owns the weapon through the hierarchy. Do not replace this with a right-hand IK loop or rewrite authored weapon transforms unless that is an explicit task.

@@ -205,6 +205,7 @@ namespace TacticalEcho.AI.Debugging
             ExcludeLayer(ref mask, "Reflection_Probes");
             ExcludeLayer(ref mask, "AccessibleVolume");
             ExcludeLayer(ref mask, "PostProcessing");
+            ExcludeLayer(ref mask, DamageHitZone.HitZoneLayerName);
             return mask;
         }
 
