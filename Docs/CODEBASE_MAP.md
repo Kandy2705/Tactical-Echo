@@ -27,14 +27,14 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | Player movement, character facing, player-level orchestration | `PlayerController.cs` | Delegate camera, weapon, animation, health and UI work to their owners. |
 | Player visual/Animator reference resolution | `PlayerVisualController.cs` | Do not put gameplay rules here. |
 | Explore/Aim camera, shoulder switch, recoil, crosshair, hit marker | `PlayerCameraController.cs` | Camera behavior and camera-facing feedback belong here. |
-| Camera obstruction/fade | `CameraObstructionHandler.cs` | Existing extension point; finish this instead of creating another obstruction system. |
+| Camera obstruction/fade | `CameraObstructionHandler.cs` | Fades obstructing renderers via `MaterialPropertyBlock`; needs Transparent/Fade-surface materials on the obstructing geometry to be visible. |
 | Player Animator parameters | `PlayerAnimationController.cs` | Locomotion, aim, fire, reload, death requests. |
 | Enemy Animator parameters | `EnemyAnimationController.cs` | Add missing enemy animation commands here. |
 | Shared full-body death clip playback | `DeathAnimationPlayer.cs` | Specialized playback implementation behind animation controllers. |
 | Left-hand rifle IK / grip alignment | `WeaponHandIKController.cs` + `WeaponGripPoints.cs` | Preserve authored weapon pose; do not add right-hand IK unless explicitly redesigned. |
 | Static weapon tuning | `WeaponDefinition.cs` | Damage, range, fire rate, ammo capacity, spread, recoil, noise. |
 | Runtime ammo/reload/fire cooldown/spread | `WeaponRuntime.cs` | Mutable weapon state only. |
-| Hitscan firing, damage dispatch, reload execution, gun noise, tracer/audio/muzzle feedback | `WeaponController.cs` | Weapon execution boundary used by Player and AI. |
+| Hitscan firing, damage dispatch, reload execution, gun noise, on-hit status effect application (Suppression/Bleed), tracer/audio/muzzle feedback | `WeaponController.cs` | Weapon execution boundary used by Player and AI. |
 | Weapon audio clip data | `WeaponAudioProfile.cs` | Data only. |
 | Body-part multiplier/critical region | `DamageHitZone.cs` | Head/torso/arm/leg metadata. |
 | Damage request payload | `DamageInfo.cs` | Domain data only. |
@@ -53,9 +53,9 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | Cover point data/evaluation | `CoverPoint.cs` + `CoverEvaluator.cs` | Do not mix cover search into Brain. |
 | AI state/score/memory debug | `EnemyAIGizmos.cs` / `AIDebugOverlay.cs` | Observation only. |
 | Sandbox perception demo enemy | `EnemyPerceptionDemoBootstrap.cs` | Owns sandbox-only edit-time authoring plus runtime binding; never production enemy setup. |
-| Status-effect config | `StatusEffectDefinition.cs` | Immutable effect data. |
+| Status-effect config | `StatusEffectDefinition.cs` | Immutable effect data, including optional damage-over-time (`damagePerTick`/`tickInterval`). |
 | Status-effect runtime duration/stack | `StatusEffectInstance.cs` | Mutable instance state. |
-| Active status effects | `StatusEffectController.cs` | Apply, stack, expire. |
+| Active status effects | `StatusEffectController.cs` | Apply, stack, expire, tick damage-over-time through the shared damage pipeline, and answer `HasEffect(effectId)` for consumers such as EnemyBrain. |
 | Item config | `ItemDefinition.cs` | Immutable item data. |
 | Runtime item identity/quantity | `ItemInstance.cs` | Runtime item state. |
 | Inventory contents | `InventoryController.cs` | Add/remove/own item collection. |
@@ -72,7 +72,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 
 | File | Owns | Extend here when | Keep out |
 | --- | --- | --- | --- |
-| `AI/Brain/EnemyBrain.cs` | High-level AI coordination, sensor/memory consumption, state transitions, tactical context, execution references, death transition | Connecting perception to state decisions; building context for tactical evaluation; coordinating existing execution components | Raw raycasts, NavMesh implementation, weapon mechanics, Animator parameters, UI/debug drawing |
+| `AI/Brain/EnemyBrain.cs` | High-level AI coordination, sensor/memory consumption, state transitions, tactical context (including Suppression read from `StatusEffectController`), execution references, death transition | Connecting perception to state decisions; building context for tactical evaluation; coordinating existing execution components | Raw raycasts, NavMesh implementation, weapon mechanics, Animator parameters, UI/debug drawing, effect-specific logic (read `HasEffect` instead) |
 | `AI/Cover/CoverEvaluator.cs` | Cover candidate validation and scoring | Better cover scoring, travel/threat criteria, NavMesh-valid cover selection | State transitions or direct movement |
 | `AI/Cover/CoverPoint.cs` | Authored cover location and optional peek point | Extra metadata that belongs to a cover point | Global cover search/AI decisions |
 | `AI/Debug/EnemyAIGizmos.cs` | Scene gizmos for perception and memory | More read-only visualization | Gameplay state or decisions |
@@ -87,7 +87,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | `AI/States/PatrolState.cs` | Patrol-state behavior | Patrol routes/idling when implemented | Investigate/search/combat logic |
 | `AI/States/InvestigateState.cs` | Reaction to a remembered/heard position | Move to and inspect `EnemyMemory` information | Following live player Transform after LOS is lost |
 | `AI/States/CombatState.cs` | Combat-state orchestration | Invoke tactical evaluation and execute the selected intent | Low-level shooting/NavMesh implementation |
-| `AI/States/SearchState.cs` | Search around remembered target information | Search pattern/timeouts based on `EnemyMemory` | Tracking the real player without LOS |
+| `AI/States/SearchState.cs` | Search around remembered target information, bounded by a timeout back to Patrol | Multi-point search pattern based on `EnemyMemory` | Tracking the real player without LOS |
 | `AI/States/RetreatState.cs` | High-level retreat behavior | Retreat state entry/tick/exit | Movement implementation or weapon internals |
 | `AI/States/DeadState.cs` | Dead-state entry behavior | Stop/disable state-owned AI activity and request death presentation through the animation boundary | Damage calculation or direct Animator parameter manipulation |
 | `AI/TacticalActions/ITacticalAction.cs` | Tactical action contract | Shared requirements for every scored tactical action | Concrete scoring values |
@@ -138,7 +138,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | --- | --- | --- | --- |
 | `Combat/StatusEffects/StatusEffectDefinition.cs` | Immutable effect ID, duration, max stacks and stack rule | Effect configuration shared by instances | Per-target runtime timers |
 | `Combat/StatusEffects/StatusEffectInstance.cs` | Runtime stacks and expiration for one applied effect | Per-instance duration/stack state | Collection ownership or UI |
-| `Combat/StatusEffects/StatusEffectController.cs` | Active effect collection, apply/stack/replace/expiration | Target-owned status lifecycle and later modifier aggregation | Hard-coded Player/Enemy special cases |
+| `Combat/StatusEffects/StatusEffectController.cs` | Active effect collection, apply/stack/replace/expiration, damage-over-time ticking through the shared damage pipeline, `HasEffect` lookup for consumers | Target-owned status lifecycle and further modifier aggregation (e.g. Slow feeding movement speed) | Hard-coded Player/Enemy special cases |
 
 ### Combat / Weapons
 
@@ -202,9 +202,9 @@ The foundation intentionally contains several unfinished extension points. Futur
 
 - `PatrolState`, `InvestigateState`, `CombatState`, `SearchState` and `RetreatState` are currently state shells. Put the corresponding state behavior there.
 - `ShootAction`, `AdvanceAction`, `TakeCoverAction`, `RepositionAction`, `ReloadAction` and `RetreatAction` already exist and already score decisions. Their `Execute` methods are currently empty. Finish them and delegate to `EnemyMovement`, `WeaponController` and animation boundaries instead of creating `EnemyShootController`, `EnemyReloadController`, etc.
-- `CameraObstructionHandler` already performs the camera/target obstruction query. Complete renderer fading/collision there rather than introducing another camera obstruction component.
+- `CameraObstructionHandler` now fades obstructing renderers via `MaterialPropertyBlock` (alpha on `_BaseColor`), not just querying for them. This only has a visible effect on materials whose Surface Type is Transparent/Fade - extend this component (not a new one) once obstructing geometry uses such materials. Camera collision (physically pulling the camera in front of geometry) is still not implemented.
 - `SaveManager` already owns main/temp/backup persistence and `ISaveParticipant` already defines capture/restore. Validation, migration and restoration should grow inside the SaveLoad boundary rather than as unrelated gameplay managers.
-- `StatusEffectDefinition`, `StatusEffectInstance` and `StatusEffectController` already establish the status pipeline. Slow/Suppression should feed their consumers through this pipeline rather than being hard-coded throughout Player/AI classes.
+- `StatusEffectDefinition`/`StatusEffectInstance`/`StatusEffectController` establish the status pipeline. `WeaponController` applies Suppression on any damaging hit and Bleed on a critical hit (`suppressionOnHit`/`bleedOnCriticalHit`), and `EnemyBrain` reads Suppression through `StatusEffectController.HasEffect` into `TacticalContext.Suppression` - both Player and Enemy weapons apply the same definitions, so this is not hard-coded per class. `Bleed_Standard.asset`/`Suppression_Standard.asset` live under `Combat/StatusEffects/Definitions/`. Slow is not implemented yet - feed it through the same pipeline (a definition with a movement-speed modifier read by `EnemyMovement`/`PlayerController`) rather than adding a parallel system. Player currently has no `StatusEffectController` attached, so Bleed only affects Enemy until one is added to `Player_Kaia.prefab`.
 - `InventoryController` and `EquipmentController` already establish inventory/equipment ownership. Future UI should use their APIs rather than maintaining a second inventory list.
 
 ## Current ownership drift to avoid copying
@@ -235,7 +235,8 @@ Do **not** create a class merely because the feature has a new name, needs a few
 - Player input asset: `Assets/_Project/Input/TacticalEcho_InputActions.inputactions`
 - Player Animator controller: `Assets/_Project/Animation/Controllers/Player_Kaia_Locomotion.controller`
 - Rifle definition: `Assets/_Project/Combat/Weapons/Definitions/Rifle_HK416.asset`
-- Shared death animation resource: `Assets/_ThirdParty/Animations/Resources/Death/Death_From_Front_Headshot.fbx`
+- Status effect definitions: `Assets/_Project/Combat/StatusEffects/Definitions/Suppression_Standard.asset`, `Bleed_Standard.asset`
+- Shared death animation resource: `Assets/_ThirdParty/Animations/Resources/Death/Death_From_Front_Headshot.fbx` - imported as Humanoid so it retargets onto Kaia's Avatar; verify the auto-generated bone mapping under Rig > Configure... if it is ever reimported.
 
 The authored `WeaponMount`/gun pose is intentional. `WeaponHandIKController` provides left-hand support IK; the right hand owns the weapon through the hierarchy. Do not replace this with a right-hand IK loop or rewrite authored weapon transforms unless that is an explicit task.
 

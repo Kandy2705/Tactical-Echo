@@ -41,13 +41,18 @@ PlayerInputReader
 WeaponController
  -> NoiseEventHub
  -> HearingSensor
+
+WeaponController
+ -> StatusEffectController (on the hit target)
 ```
 
 `WeaponDefinition` contains immutable configuration. `WeaponRuntime` contains mutable ammo, fire cooldown and reload state.
 
 ## Status effects
 
-`StatusEffectDefinition` describes duration and stacking rules. `StatusEffectInstance` owns runtime duration/stack state. `StatusEffectController` owns active effects. Later, modifiers such as Slow and Suppression will feed movement and tactical scoring without hard-coded checks spread across unrelated classes.
+`StatusEffectDefinition` describes duration/stacking rules and an optional damage-over-time rate (`damagePerTick`/`tickInterval`). `StatusEffectInstance` owns runtime duration/stack/tick state. `StatusEffectController` owns active effects, ticks damage-over-time back through the shared damage pipeline (`DamageInfo` -> `IDamageable`), and exposes `HasEffect(effectId)` for consumers.
+
+`WeaponController` applies a configured `StatusEffectDefinition` to whatever it hits (any damaging hit is suppressive; a critical hit also applies Bleed), so status application stays part of the shared weapon execution boundary rather than being hard-coded per Player/Enemy. `EnemyBrain` reads an active Suppression effect through `StatusEffectController.HasEffect` and turns its stack count into `TacticalContext.Suppression`, so `TakeCoverAction`/`ShootAction`/etc. score against it without EnemyBrain special-casing the effect itself. Slow is not implemented yet.
 
 ## Inventory/equipment
 
@@ -73,9 +78,9 @@ The current foundation already separates participants from persistence. Migratio
 
 ## Camera and animation
 
-Camera owns Explore/Aim/shoulder/collision/obstruction responsibilities. Animation controllers centralize Animator parameters so gameplay classes do not set Animator parameters across the codebase.
+Camera owns Explore/Aim/shoulder/collision/obstruction responsibilities. `PlayerInputReader.SwitchShoulderPressedThisFrame` (Q by keyboard fallback, matching the Reload pattern) drives `PlayerCameraController.SwitchShoulder()` through `PlayerController`. Animation controllers centralize Animator parameters so gameplay classes do not set Animator parameters across the codebase.
 
-PrimeTween is allowed only for presentation smoothing such as UI and obstruction fading. It must not own AI state transitions, combat cooldowns, damage or save logic.
+PrimeTween is allowed only for presentation smoothing such as UI and obstruction fading; it must not own AI state transitions, combat cooldowns, damage or save logic. Only PrimeTween's Editor installer is currently present under `Assets/Plugins/PrimeTween` - the runtime package itself is not installed yet, so presentation smoothing (camera blend, obstruction fade) currently uses the project's existing manual exponential-blend convention and should move to PrimeTween once the package is actually installed.
 
 Text UI uses TextMeshPro (`TMP_Text`/`TextMeshProUGUI`), not legacy `UnityEngine.UI.Text`.
 
