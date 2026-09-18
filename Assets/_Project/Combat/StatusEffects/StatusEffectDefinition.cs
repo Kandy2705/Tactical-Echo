@@ -17,9 +17,17 @@ namespace TacticalEcho.Combat.StatusEffects
         [SerializeField, Min(1)] private int maxStacks = 1;
         [SerializeField] private StatusStackRule stackRule = StatusStackRule.RefreshDuration;
 
+        [Header("Damage Over Time")]
+        [Tooltip("Damage applied through the shared damage pipeline (DamageInfo -> IDamageable) each tick while this effect is active. 0 = a pure debuff with no damage-over-time, such as Suppression.")]
+        [SerializeField, Min(0f)] private float damagePerTick = 0f;
+        [Tooltip("Seconds between damage-over-time ticks. Only relevant when damagePerTick > 0.")]
+        [SerializeField, Min(0.05f)] private float tickInterval = 1f;
+
         public string EffectId => effectId;
         public float Duration => duration;
         public int MaxStacks => maxStacks;
         public StatusStackRule StackRule => stackRule;
+        public float DamagePerTick => damagePerTick;
+        public float TickInterval => tickInterval;
     }
 }
