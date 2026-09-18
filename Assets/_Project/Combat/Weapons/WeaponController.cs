@@ -1,6 +1,7 @@
 using System;
 using TacticalEcho.Combat.Damage;
 using TacticalEcho.Combat.Impacts;
+using TacticalEcho.Combat.StatusEffects;
 using TacticalEcho.Core.Events;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -22,6 +23,12 @@ namespace TacticalEcho.Combat.Weapons
         [SerializeField] private WeaponAudioProfile audioProfile;
         [SerializeField] private AudioClip fireAudioClip;
         [SerializeField, Range(0f, 1f)] private float fireAudioVolume = 0.95f;
+
+        [Header("Status Effects On Hit")]
+        [Tooltip("Applied to whatever is hit and damaged, if it has a StatusEffectController. Any hit that lands is suppressive.")]
+        [SerializeField] private StatusEffectDefinition suppressionOnHit;
+        [Tooltip("Applied in addition to suppressionOnHit when the hit was a critical (e.g. headshot) hit.")]
+        [SerializeField] private StatusEffectDefinition bleedOnCriticalHit;
 
         [Header("Tracer")]
         [SerializeField] private bool enableTracer = true;
@@ -170,6 +177,7 @@ namespace TacticalEcho.Combat.Weapons
                         hit.point,
                         zoneType,
                         isCritical));
+                    ApplyHitStatusEffects(hit.collider, isCritical);
                 }
             }
 
@@ -496,6 +504,30 @@ namespace TacticalEcho.Combat.Weapons
                 definition.NoiseRadius,
                 definition.NoiseIntensity,
                 gameObject));
+        }
+
+        private void ApplyHitStatusEffects(Collider hitCollider, bool isCritical)
+        {
+            if (suppressionOnHit == null && bleedOnCriticalHit == null)
+            {
+                return;
+            }
+
+            StatusEffectController statusEffects = hitCollider.GetComponentInParent<StatusEffectController>();
+            if (statusEffects == null)
+            {
+                return;
+            }
+
+            if (suppressionOnHit != null)
+            {
+                statusEffects.Apply(suppressionOnHit);
+            }
+
+            if (isCritical && bleedOnCriticalHit != null)
+            {
+                statusEffects.Apply(bleedOnCriticalHit);
+            }
         }
     }
 }

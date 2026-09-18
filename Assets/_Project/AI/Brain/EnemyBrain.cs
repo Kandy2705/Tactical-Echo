@@ -6,6 +6,7 @@ using TacticalEcho.AI.States;
 using TacticalEcho.AI.TacticalActions;
 using TacticalEcho.AnimationSystem.Runtime;
 using TacticalEcho.Combat.Health;
+using TacticalEcho.Combat.StatusEffects;
 using TacticalEcho.Combat.Weapons;
 using TacticalEcho.Core.Events;
 using TacticalEcho.Core.StateMachine;
@@ -16,6 +17,7 @@ namespace TacticalEcho.AI.Brain
     public sealed class EnemyBrain : MonoBehaviour
     {
         private const float PreferredCombatRange = 12f;
+        private const string SuppressionEffectId = "suppression";
 
         [Header("Perception")]
         [SerializeField] private VisionSensor vision;
@@ -32,6 +34,10 @@ namespace TacticalEcho.AI.Brain
         [SerializeField] private TacticalEvaluator tacticalEvaluator;
         [SerializeField] private CoverEvaluator coverEvaluator;
 
+        [Header("Status Effects")]
+        [Tooltip("Optional. Read to turn an active Suppression effect into TacticalContext.Suppression. Falls back to a StatusEffectController on this GameObject if left unassigned.")]
+        [SerializeField] private StatusEffectController statusEffects;
+
         private readonly StateMachine<EnemyStateId> stateMachine = new();
         private Health subscribedHealth;
         private bool isDead;
@@ -45,10 +51,16 @@ namespace TacticalEcho.AI.Brain
         public EnemyAnimationController AnimationController => animationController;
         public TacticalEvaluator TacticalEvaluator => tacticalEvaluator;
         public CoverEvaluator CoverEvaluator => coverEvaluator;
+        public StatusEffectController StatusEffects => statusEffects;
         public Health Health => health;
 
         private void Awake()
         {
+            if (statusEffects == null)
+            {
+                statusEffects = GetComponent<StatusEffectController>();
+            }
+
             stateMachine.Register(EnemyStateId.Patrol, new PatrolState(this));
             stateMachine.Register(EnemyStateId.Investigate, new InvestigateState(this));
             stateMachine.Register(EnemyStateId.Combat, new CombatState(this));
@@ -138,7 +150,24 @@ namespace TacticalEcho.AI.Brain
 
         public TacticalContext BuildTacticalContext()
         {
-            return BuildTacticalContextInternal(suppression: 0f, threatOverride: -1f, coverOverride: false);
+            return BuildTacticalContextInternal(suppression: ResolveSuppression(), threatOverride: -1f, coverOverride: false);
+        }
+
+        /// <summary>
+        /// Turns an active Suppression status effect into a normalized 0..1 value driven by its
+        /// current stack count. This is how Suppression reaches TacticalContext/TakeCoverAction
+        /// without EnemyBrain special-casing the effect itself - the StatusEffectController
+        /// pipeline stays the single owner of effect lifecycle.
+        /// </summary>
+        private float ResolveSuppression()
+        {
+            if (statusEffects == null || !statusEffects.HasEffect(SuppressionEffectId, out StatusEffectInstance suppression))
+            {
+                return 0f;
+            }
+
+            int maxStacks = Mathf.Max(1, suppression.Definition.MaxStacks);
+            return Mathf.Clamp01((float)suppression.StackCount / maxStacks);
         }
 
         public TacticalContext BuildTacticalContext(bool coverAvailable, float threat, float suppression)
