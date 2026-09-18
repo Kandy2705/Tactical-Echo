@@ -37,6 +37,9 @@ PlayerInputReader
  -> DamageInfo
  -> IDamageable
  -> Health
+ -> DeadState / PlayerController
+ -> AnimationController.PlayDeath()
+ -> DeathAnimationPlayer (Playable graph owns the Animator until Stop())
 
 WeaponController
  -> NoiseEventHub
@@ -87,6 +90,10 @@ Text UI uses TextMeshPro (`TMP_Text`/`TextMeshProUGUI`), not legacy `UnityEngine
 ## Debugging
 
 `AIDebugOverlay` displays state, tactical action scores and memory information. Scene gizmos visualize perception and remembered positions. Debug code observes runtime systems and does not become a gameplay dependency.
+
+## Death and animation ownership
+
+Death is a latch, and it is held in two places at once. `EnemyAnimationController`/`PlayerAnimationController` raise an `isDead` flag that mutes every Animator parameter write, and `DeathAnimationPlayer` starts a Playable graph that takes over the Animator's output completely, so the AnimatorController's locomotion blend tree and upper body layer stop driving the rig. That is correct for a corpse, but it means the two must be released together: anything that decides a character is alive again - `EnemyBrain.ConfigureExecution` recomputing `isDead` from a Health that has since initialized, for example - has to call `ClearDeath()`, which both lowers the flag and calls `DeathAnimationPlayer.Stop()`. Releasing only one leaves a character whose AI runs normally while its body stays in the death pose and never animates. `Health` guards the other end of the same problem by reporting `IsAlive` until it has initialized, so an observer running in `OnEnable` cannot read a full-health character as dead before `Awake()` has run.
 
 ## Performance direction
 
