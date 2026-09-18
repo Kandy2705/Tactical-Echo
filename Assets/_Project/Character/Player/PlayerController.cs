@@ -87,6 +87,7 @@ namespace TacticalEcho.Character.Player
             UpdateMovement();
             UpdateRotation();
             UpdateCameraMode();
+            UpdateShoulderSwitch();
             UpdateCombat();
             UpdateAnimation();
         }
@@ -277,6 +278,14 @@ namespace TacticalEcho.Character.Player
             }
 
             playerCamera.SetMode(IsAiming ? CameraMode.Aim : CameraMode.Explore);
+        }
+
+        private void UpdateShoulderSwitch()
+        {
+            if (playerCamera != null && input.SwitchShoulderPressedThisFrame)
+            {
+                playerCamera.SwitchShoulder();
+            }
         }
 
         private void UpdateCombat()
