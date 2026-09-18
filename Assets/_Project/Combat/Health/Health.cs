@@ -8,21 +8,33 @@ namespace TacticalEcho.Combat.Health
     {
         [SerializeField, Min(1f)] private float maxHealth = 100f;
 
+        private bool initialized;
+
         public event Action<float, float> HealthChanged;
         public event Action Died;
 
         public float Current { get; private set; }
         public float Max => maxHealth;
         public float Normalized => maxHealth <= 0f ? 0f : Current / maxHealth;
-        public bool IsAlive => Current > 0f;
+
+        /// <summary>
+        /// Health is only meaningful once it has been initialized. Observers such as
+        /// EnemyBrain.BindHealthEvents run from OnEnable, which Unity does not order
+        /// against this component's Awake, so a not-yet-initialized Health must never
+        /// report "not alive" - otherwise the observer latches a death on a character
+        /// that is actually at full health.
+        /// </summary>
+        public bool IsAlive => !initialized || Current > 0f;
 
         private void Awake()
         {
-            Current = maxHealth;
+            EnsureInitialized();
         }
 
         public void ApplyDamage(in DamageInfo damageInfo)
         {
+            EnsureInitialized();
+
             if (!IsAlive || damageInfo.Amount <= 0f)
             {
                 return;
@@ -35,6 +47,17 @@ namespace TacticalEcho.Combat.Health
             {
                 Died?.Invoke();
             }
+        }
+
+        private void EnsureInitialized()
+        {
+            if (initialized)
+            {
+                return;
+            }
+
+            initialized = true;
+            Current = maxHealth;
         }
     }
 }

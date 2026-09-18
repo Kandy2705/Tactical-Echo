@@ -29,8 +29,8 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | Explore/Aim camera, shoulder switch, recoil, crosshair, hit marker | `PlayerCameraController.cs` | Camera behavior and camera-facing feedback belong here. |
 | Camera obstruction/fade | `CameraObstructionHandler.cs` | Fades obstructing renderers via `MaterialPropertyBlock`; needs Transparent/Fade-surface materials on the obstructing geometry to be visible. |
 | Player Animator parameters | `PlayerAnimationController.cs` | Locomotion, aim, fire, reload, death requests. |
-| Enemy Animator parameters | `EnemyAnimationController.cs` | Add missing enemy animation commands here. |
-| Shared full-body death clip playback | `DeathAnimationPlayer.cs` | Specialized playback implementation behind animation controllers. |
+| Enemy Animator parameters | `EnemyAnimationController.cs` | Add missing enemy animation commands here. `PlayDeath()`/`ClearDeath()` raise and release the death latch as a pair. |
+| Shared full-body death clip playback | `DeathAnimationPlayer.cs` | Specialized playback implementation behind animation controllers. `Play()` takes over the Animator's output entirely; `Stop()` gives it back. |
 | Left-hand rifle IK / grip alignment | `WeaponHandIKController.cs` + `WeaponGripPoints.cs` | Preserve authored weapon pose; do not add right-hand IK unless explicitly redesigned. |
 | Static weapon tuning | `WeaponDefinition.cs` | Damage, range, fire rate, ammo capacity, spread, recoil, noise. |
 | Runtime ammo/reload/fire cooldown/spread | `WeaponRuntime.cs` | Mutable weapon state only. |
@@ -39,7 +39,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | Body-part multiplier/critical region | `DamageHitZone.cs` | Head/torso/arm/leg metadata. |
 | Damage request payload | `DamageInfo.cs` | Domain data only. |
 | Apply damage to a hit collider | `DamageSystem.cs` | Resolve `IDamageable` and invoke it. |
-| HP, death event | `Health.cs` | Shared Player/Enemy health owner. |
+| HP, death event | `Health.cs` | Shared Player/Enemy health owner. Reports `IsAlive` until initialized so observers cannot latch a death before `Awake()`. |
 | Damage UI feedback payload | `DamageFeedback.cs` | Presentation-facing result, not health mutation. |
 | Bullet holes/blood/surface hit VFX | `SurfaceImpactSystem.cs` | Presentation only; no damage authority. |
 | Floating damage numbers | `FloatingDamageNumberSystem.cs` | TMP screen-space presentation/pooling. |
@@ -78,7 +78,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | `AI/Debug/EnemyAIGizmos.cs` | Scene gizmos for perception and memory | More read-only visualization | Gameplay state or decisions |
 | `AI/Debug/EnemyPerceptionDemoBootstrap.cs` | Sandbox perception-demo prefab/scene authoring, runtime player binding, NavMesh fallback and demo status view | Temporary/debug setup for the perception showcase, including making the demo enemy visible before Play | Production enemy construction, production spawning or gameplay rules |
 | `AI/Memory/EnemyMemory.cs` | Last seen/heard positions, times and confidence decay | Memory confidence, remembered target information, forgetting rules | Direct sensing or movement |
-| `AI/Navigation/EnemyMovement.cs` | NavMeshAgent execution | Destination, stop, path/reached behavior and later movement execution details | Tactical scoring and perception |
+| `AI/Navigation/EnemyMovement.cs` | NavMeshAgent execution | Destination, stop, path/reached behavior and later movement execution details. `Stop()` parks the agent (`isStopped`, zeroed velocity); `SetDestination()` releases it again | Tactical scoring and perception |
 | `AI/Perception/HearingSensor.cs` | Hearing NoiseEventHub events and reporting pending noise | Hearing radius/filters/sensor-side detection | Remembering noise or choosing actions |
 | `AI/Perception/ISensor.cs` | Common sensor tick contract | Only when all sensors need a shared contract capability | Sensor-specific data |
 | `AI/Perception/VisionSensor.cs` | FOV/range/LOS vision detection | Vision scanning and target visibility rules | Enemy memory or combat decisions |
@@ -101,8 +101,8 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | File | Owns | Extend here when | Keep out |
 | --- | --- | --- | --- |
 | `Animation/Runtime/PlayerAnimationController.cs` | All Player Animator parameters/layers and animation commands | Player locomotion/aim/fire/reload/death animation behavior | Player combat rules or input |
-| `Animation/Runtime/EnemyAnimationController.cs` | Enemy Animator parameter API | Enemy locomotion/aim/fire/reload and future death command | Enemy tactical decisions |
-| `Animation/Runtime/DeathAnimationPlayer.cs` | Shared full-body death clip playback through Playables | Death clip playback mechanics and full-body death-specific IK handling | Health/death rules or state decisions |
+| `Animation/Runtime/EnemyAnimationController.cs` | Enemy Animator parameter API | Enemy locomotion/aim/fire/reload, plus the death latch (`PlayDeath`/`ClearDeath`) that mutes parameter writes while dead | Enemy tactical decisions |
+| `Animation/Runtime/DeathAnimationPlayer.cs` | Shared full-body death clip playback through Playables | Death clip playback mechanics, Playable graph lifecycle (`Play`/`Stop`) and full-body death-specific IK handling, scoped to the Animator's own hierarchy | Health/death rules or state decisions |
 | `Animation/Runtime/WeaponHandIKController.cs` | Humanoid left-hand rifle IK and state-dependent IK weight | Support-hand grip behavior and transitions | Weapon firing rules; avoid changing authored right-hand weapon pose here |
 
 ### Camera
@@ -129,7 +129,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | `Combat/Damage/DamageSystem.cs` | Resolve an `IDamageable` from the hit collider and apply DamageInfo | Shared damage dispatch rules | Weapon raycast, HP storage, UI |
 | `Combat/Damage/DamageHitZone.cs` | Body region type, multiplier and critical flag | New hit region metadata/multiplier rules | HP mutation |
 | `Combat/Damage/DamageFeedback.cs` | Resolved damage information for presentation | Additional presentation-safe result fields | Damage authority |
-| `Combat/Health/Health.cs` | Current/max HP, shared IDamageable implementation, HealthChanged/Died events | Healing/health reset only if they belong to universal Health semantics | Player/Enemy-specific death behavior |
+| `Combat/Health/Health.cs` | Current/max HP, shared IDamageable implementation, HealthChanged/Died events, initialization contract (`IsAlive` is true until initialized, so `OnEnable` observers cannot read a full-health character as dead) | Healing/health reset only if they belong to universal Health semantics | Player/Enemy-specific death behavior |
 | `Combat/Impacts/SurfaceImpactSystem.cs` | Surface classification and pooled bullet-hole/blood hit presentation | Surface impact VFX/audio/pooling | Damage calculation or health |
 
 ### Combat / Status effects
@@ -211,7 +211,7 @@ The foundation intentionally contains several unfinished extension points. Futur
 
 The codebase is in active development, so this map also records places that should **not become precedent**:
 
-- `EnemyBrain` currently invokes `DeathAnimationPlayer` directly on death. The architecture says animation execution belongs behind an animation controller. When enemy animation/death work is touched, extend `EnemyAnimationController` with the death command and let Brain request it; do not add a separate `EnemyDeathController`.
+- Death is a latch in two places at once: `EnemyAnimationController.isDead` mutes Animator parameter writes, and `DeathAnimationPlayer`'s Playable graph takes over the Animator's output. Anything that brings a character back (for example `EnemyBrain.ConfigureExecution` recomputing `isDead` from a now-initialized `Health`) must release both via `ClearDeath()`. Do not clear one without the other, and do not add a separate `EnemyDeathController` to work around it.
 - `PlayerController` currently bridges weapon damage feedback to hit marker/floating-number presentation. Do not use that as a reason to keep adding UI rendering responsibilities to PlayerController. Prefer existing UI/camera presentation owners and event-based observation.
 - `EnemyPerceptionDemoBootstrap` is deliberately a sandbox-only debug harness. Editor authoring and temporary runtime wiring for the perception showcase belong here, but do not grow the real enemy architecture or production spawning inside this file.
 

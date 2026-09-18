@@ -131,6 +131,14 @@ namespace TacticalEcho.AI.Brain
             animationController = newAnimationController;
             isDead = health != null && !health.IsAlive;
 
+            if (!isDead)
+            {
+                // Configuration can run after a transient death was latched during scene
+                // startup. The brain clears its own flag here, so the animation layer has to
+                // be released in the same step or the two disagree permanently.
+                animationController?.ClearDeath();
+            }
+
             if (isActiveAndEnabled)
             {
                 BindHealthEvents();

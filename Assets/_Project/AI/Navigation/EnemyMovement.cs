@@ -100,6 +100,10 @@ namespace TacticalEcho.AI.Navigation
             }
 
             agent.stoppingDistance = Mathf.Max(0f, stoppingDistance);
+
+            // Stop() parks the agent with isStopped, so any new destination has to release
+            // it again - otherwise the first Stop() would freeze the enemy permanently.
+            agent.isStopped = false;
             return agent.SetDestination(destinationHit.position);
         }
 
@@ -110,7 +114,11 @@ namespace TacticalEcho.AI.Navigation
                 return;
             }
 
+            // ResetPath() alone only clears the route: the agent keeps its current velocity
+            // and coasts to a halt, which reads as a corpse sliding away from where it fell.
             agent.ResetPath();
+            agent.velocity = Vector3.zero;
+            agent.isStopped = true;
         }
 
         public void FacePosition(Vector3 worldPosition)
