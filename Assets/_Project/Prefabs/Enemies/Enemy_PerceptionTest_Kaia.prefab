@@ -1318,7 +1318,7 @@ GameObject:
   - component: {fileID: 5388021540629426567}
   - component: {fileID: 5921275737080172749}
   - component: {fileID: 7438218419520773079}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: HitZone_Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1417,7 +1417,7 @@ GameObject:
   - component: {fileID: 1456499554325507433}
   - component: {fileID: 5240549435194502560}
   - component: {fileID: 4037454606454547614}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: HitZone_LeftCalf
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1550,7 +1550,7 @@ GameObject:
   - component: {fileID: 5804337710666117086}
   - component: {fileID: 2251609428199500203}
   - component: {fileID: 6145113692049151921}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: HitZone_Torso
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3807,7 +3807,7 @@ GameObject:
   - component: {fileID: 1994582547093217725}
   - component: {fileID: 6982246960328760977}
   - component: {fileID: 487692109447404175}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: HitZone_LeftThigh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5633,7 +5633,7 @@ GameObject:
   - component: {fileID: 5441841581801543606}
   - component: {fileID: 6498344424924612719}
   - component: {fileID: 4814779006956650164}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: HitZone_RightUpperArm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5735,7 +5735,7 @@ GameObject:
   - component: {fileID: 6948815901968145377}
   - component: {fileID: 9152699492605628905}
   - component: {fileID: 1254139369668190786}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: HitZone_RightThigh
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6123,7 +6123,7 @@ GameObject:
   - component: {fileID: 7466785222899286771}
   - component: {fileID: 2801359038741664224}
   - component: {fileID: 380572828506308984}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: HitZone_LeftLowerArm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6288,7 +6288,7 @@ GameObject:
   - component: {fileID: 5785248195408956645}
   - component: {fileID: 1664939197911262582}
   - component: {fileID: 173660285725669008}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: HitZone_LeftUpperArm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -7694,7 +7694,7 @@ GameObject:
   - component: {fileID: 7460596990142949987}
   - component: {fileID: 5898065292379637421}
   - component: {fileID: 8905317597715113103}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: HitZone_RightCalf
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -10154,7 +10154,7 @@ GameObject:
   - component: {fileID: 5183464274537610195}
   - component: {fileID: 6967990654153856395}
   - component: {fileID: 5092738469428724418}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: HitZone_RightLowerArm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
