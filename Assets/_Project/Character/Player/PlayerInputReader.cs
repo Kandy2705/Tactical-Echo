@@ -17,6 +17,10 @@ namespace TacticalEcho.Character.Player
         [Tooltip("When no Aim InputAction is assigned, right click toggles aim so a trackpad/mouse can fire without holding two buttons at once.")]
         [SerializeField] private bool toggleMouseAim = true;
 
+        [Header("Camera")]
+        [Tooltip("Optional. When no InputAction is assigned, Q switches the over-the-shoulder camera side, matching the keyboard-fallback pattern already used for Reload.")]
+        [SerializeField] private InputActionReference switchShoulderAction;
+
         private bool mouseAimToggled;
 
         public Vector2 Move => ReadVector2(moveAction);
@@ -28,6 +32,7 @@ namespace TacticalEcho.Character.Player
         public bool IsFiring => IsPressed(fireAction) || (Mouse.current != null && Mouse.current.leftButton.isPressed);
         public bool FirePressedThisFrame => WasPressedThisFrame(fireAction) || (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame);
         public bool ReloadPressedThisFrame => WasPressedThisFrame(reloadAction) || (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame);
+        public bool SwitchShoulderPressedThisFrame => WasPressedThisFrame(switchShoulderAction) || (Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame);
 
         public bool IsAiming
         {
@@ -77,6 +82,7 @@ namespace TacticalEcho.Character.Player
             SetEnabled(fireAction, true);
             SetEnabled(reloadAction, true);
             SetEnabled(aimAction, true);
+            SetEnabled(switchShoulderAction, true);
         }
 
         private void OnDisable()
@@ -88,6 +94,7 @@ namespace TacticalEcho.Character.Player
             SetEnabled(fireAction, false);
             SetEnabled(reloadAction, false);
             SetEnabled(aimAction, false);
+            SetEnabled(switchShoulderAction, false);
         }
 
         public void Configure(
