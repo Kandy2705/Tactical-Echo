@@ -102,7 +102,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | --- | --- | --- | --- |
 | `Animation/Runtime/PlayerAnimationController.cs` | All Player Animator parameters/layers and animation commands | Player locomotion/aim/fire/reload/death animation behavior | Player combat rules or input |
 | `Animation/Runtime/EnemyAnimationController.cs` | Enemy Animator parameter API | Enemy locomotion/aim/fire/reload, plus the death latch (`PlayDeath`/`ClearDeath`) that mutes parameter writes while dead | Enemy tactical decisions |
-| `Animation/Runtime/DeathAnimationPlayer.cs` | Shared full-body death clip playback through Playables | Death clip playback mechanics, Playable graph lifecycle (`Play`/`Stop`) and full-body death-specific IK handling, scoped to the Animator's own hierarchy | Health/death rules or state decisions |
+| `Animation/Runtime/DeathAnimationPlayer.cs` | Shared full-body death clip playback through Playables | Death clip playback mechanics, Playable graph lifecycle (`Play`/`Stop`), root-motion handling for the fall (the clip is not pose-baked) and full-body death-specific IK handling, scoped to the Animator's own hierarchy | Health/death rules or state decisions |
 | `Animation/Runtime/WeaponHandIKController.cs` | Humanoid left-hand rifle IK and state-dependent IK weight | Support-hand grip behavior and transitions | Weapon firing rules; avoid changing authored right-hand weapon pose here |
 
 ### Camera
