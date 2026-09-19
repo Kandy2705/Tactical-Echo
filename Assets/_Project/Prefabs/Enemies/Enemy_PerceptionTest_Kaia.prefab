@@ -3380,6 +3380,8 @@ GameObject:
   - component: {fileID: 2795072589016269435}
   - component: {fileID: 7945561179147064743}
   - component: {fileID: 8347562910473825619}
+  - component: {fileID: 2642821167521371521}
+  - component: {fileID: 4099190049836133457}
   m_Layer: 0
   m_Name: Enemy_PerceptionTest_Kaia
   m_TagString: Untagged
@@ -12108,3 +12110,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 43ae820f83075454f9e7a468cb61257b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.Combat.StatusEffects.StatusEffectController
+--- !u!114 &2642821167521371521
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2653061159563352680}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3d5ed3e5e4954425adb8c79505be66f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.Inventory.InventoryController
+  items: []
+--- !u!114 &4099190049836133457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2653061159563352680}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8212b4de8c044762af31852056ba8df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.Inventory.Equipment.EquipmentController
+  startingPrimaryWeapon: {fileID: 11400000, guid: caae3fae18774ffc885a47a5f61d22ef, type: 2}
+  startingSecondaryWeapon: {fileID: 0}
+  startingSlot: 0
+  inventory: {fileID: 2642821167521371521}
+  weapon: {fileID: 1462353240010176484}

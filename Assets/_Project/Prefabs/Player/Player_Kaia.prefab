@@ -140,6 +140,8 @@ GameObject:
   - component: {fileID: 8539658344473929940}
   - component: {fileID: 1535594749522685596}
   - component: {fileID: 942052521464371640}
+  - component: {fileID: 8649923505923327251}
+  - component: {fileID: 6855383751809239895}
   m_Layer: 0
   m_Name: Player_Kaia
   m_TagString: Player
@@ -258,6 +260,7 @@ MonoBehaviour:
   cameraOrientation: {fileID: 0}
   aimOrigin: {fileID: 6747359432106684043}
   animationController: {fileID: 1535594749522685596}
+  equipment: {fileID: 6855383751809239895}
   walkSpeed: 4.5
   sprintSpeed: 7
   rotationSharpness: 14
@@ -737,3 +740,33 @@ MonoBehaviour:
   fireWeight: 0.9
   reloadWeight: 0
   defaultWeight: 0.8
+--- !u!114 &8649923505923327251
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5317665909405138589}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3d5ed3e5e4954425adb8c79505be66f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.Inventory.InventoryController
+  items: []
+--- !u!114 &6855383751809239895
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5317665909405138589}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8212b4de8c044762af31852056ba8df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.Inventory.Equipment.EquipmentController
+  startingPrimaryWeapon: {fileID: 11400000, guid: caae3fae18774ffc885a47a5f61d22ef, type: 2}
+  startingSecondaryWeapon: {fileID: 11400000, guid: 2cf41113c6f24d41862146242280fda8, type: 2}
+  startingSlot: 0
+  inventory: {fileID: 8649923505923327251}
+  weapon: {fileID: 3701341866759072246}

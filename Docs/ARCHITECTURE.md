@@ -61,6 +61,8 @@ WeaponController
 
 `ItemDefinition` is immutable item data. `ItemInstance` is runtime identity/state. `InventoryController` owns items. `EquipmentController` owns the primary/secondary slots. UI must call these APIs instead of editing collections directly.
 
+A weapon item is the single link between the two halves of the project: `ItemDefinition.WeaponDefinition` points at the combat configuration, so inventory owns what the item is and `WeaponDefinition` owns how it shoots, with no ballistics data duplicated on the item. `EquipmentController` builds its starting loadout from authored `ItemDefinition` assets in `Awake`, adds them to the `InventoryController` and equips them through its own `Equip` API, then pushes the active slot's `WeaponDefinition` into the character's `WeaponController`. Slot selection is a request that `EquipmentController` can refuse - an empty slot is never brought into hand - and input only names the slot it wants. `WeaponController` keeps one `WeaponRuntime` per definition for its lifetime, so swapping to the other slot and back returns a weapon with the ammo it was left with instead of a freshly loaded one. Both Player and Enemy carry the same two components; the AI simply never asks for a slot change.
+
 ## Save/load
 
 ```text
