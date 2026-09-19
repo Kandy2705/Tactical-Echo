@@ -61,6 +61,8 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | Inventory contents | `InventoryController.cs` | Add/remove/own item collection. |
 | Primary/secondary equipment | `EquipmentController.cs` | Equipment slot ownership, starting loadout and active-slot selection. |
 | Save participant contract | `ISaveParticipant.cs` | Capture/restore contract. |
+| Save schema version, migration, validation | `SaveSchema.cs` | What a save may contain and how an old one is upgraded. |
+| Weapon/status/save debug views | `WeaponDebugOverlay.cs`, `StatusEffectDebugOverlay.cs`, `SaveDebugOverlay.cs` | Read-only overlays built on `DebugOverlayBase`. |
 | Save schema/records | `SaveGameData.cs` | Serialized save DTOs. |
 | Save files, temp/backup/load | `SaveManager.cs` | Persistence orchestration. |
 | Persistent object identity | `StableId.cs` | Stable save identity. |
@@ -163,7 +165,11 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 
 | File | Owns | Extend here when | Keep out |
 | --- | --- | --- | --- |
+| `DebugTools/DebugOverlayBase.cs` | Shared overlay shape: TMP target or self-built screen text, per-frame rebuild | Behaviour common to every debug overlay | Anything specific to one observed system |
 | `DebugTools/AIDebugOverlay.cs` | TMP display of AI state, tactical scores and memory | Additional read-only AI debugging information | Any gameplay authority |
+| `DebugTools/WeaponDebugOverlay.cs` | TMP display of weapon runtime: ammo, reload timing, current and effective spread | Additional read-only weapon debugging information | Weapon rules; it must not drive firing |
+| `DebugTools/StatusEffectDebugOverlay.cs` | TMP display of active status effects: stacks, remaining, damage tick | Additional read-only status debugging information | Applying or expiring effects |
+| `DebugTools/SaveDebugOverlay.cs` | TMP display of save files and the last write/read result, plus debug save/load keys | Additional read-only save debugging information | Save format, validation or migration rules |
 
 ### Inventory / Equipment
 
@@ -185,8 +191,9 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | File | Owns | Extend here when | Keep out |
 | --- | --- | --- | --- |
 | `SaveLoad/Contracts/ISaveParticipant.cs` | Stable ID + capture/restore contract | Requirements common to every persistent participant | File I/O |
-| `SaveLoad/Data/SaveGameData.cs` | `SaveRecord` and versioned save DTO | Serialized schema fields | File system operations |
-| `SaveLoad/Persistence/SaveManager.cs` | Participant registration, JSON file write, temp/main/backup read path | Restore orchestration, validation/migration entry flow and file persistence | Gameplay-specific state logic |
+| `SaveLoad/Data/SaveGameData.cs` | `SaveRecord`, the versioned save DTO and `CurrentSchemaVersion` | Serialized schema fields | File system operations; validation and migration rules |
+| `SaveLoad/Data/SaveSchema.cs` | Current schema version, migration steps keyed by the version they upgrade from, and what a valid save may contain | A new schema version and its migration step; stricter validation rules | File I/O, participant knowledge |
+| `SaveLoad/Persistence/SaveManager.cs` | Participant registration, JSON file write, temp/main/backup read path, and the last write/read outcome | Restore orchestration and file persistence | Gameplay-specific state logic; schema rules, which belong to `SaveSchema` |
 | `SaveLoad/StableId.cs` | Stable serialized object ID | Persistent identity generation/validation | Save-file I/O |
 
 ### UI

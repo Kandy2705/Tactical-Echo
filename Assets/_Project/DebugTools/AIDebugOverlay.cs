@@ -2,38 +2,46 @@ using System.Collections.Generic;
 using System.Text;
 using TacticalEcho.AI.Brain;
 using TacticalEcho.AI.TacticalActions;
-using TMPro;
 using UnityEngine;
 
 namespace TacticalEcho.DebugTools
 {
-    public sealed class AIDebugOverlay : MonoBehaviour
+    /// <summary>
+    /// Read-only view of an EnemyBrain: current state, tactical action scores and what the
+    /// AI remembers. Never reads the live player transform, only what the brain exposes.
+    /// </summary>
+    public sealed class AIDebugOverlay : DebugOverlayBase
     {
+        [Header("Observed")]
         [SerializeField] private EnemyBrain observedBrain;
-        [SerializeField] private TMP_Text outputText;
 
-        private readonly StringBuilder builder = new();
+        protected override string OverlayName => "AI Debug";
 
-        private void LateUpdate()
+        public void Observe(EnemyBrain brain)
         {
-            if (observedBrain == null || outputText == null)
+            observedBrain = brain;
+        }
+
+        protected override void BuildText(StringBuilder text)
+        {
+            if (observedBrain == null)
             {
+                text.AppendLine("no EnemyBrain observed");
                 return;
             }
 
-            builder.Clear();
-            builder.Append("State: ").AppendLine(observedBrain.CurrentState.ToString());
+            text.Append("State: ").AppendLine(observedBrain.CurrentState.ToString());
 
             if (observedBrain.TacticalEvaluator != null)
             {
                 TacticalEvaluator evaluator = observedBrain.TacticalEvaluator;
-                builder.Append("Selected: ")
+                text.Append("Selected: ")
                     .Append(evaluator.LastDecision)
                     .Append(" (")
                     .Append(evaluator.LastDecisionScore.ToString("0.00"))
                     .AppendLine(")");
 
-                builder.Append("Highest: ")
+                text.Append("Highest: ")
                     .Append(evaluator.LastHighestScoreAction)
                     .Append(" (")
                     .Append(evaluator.LastHighestScore.ToString("0.00"))
@@ -41,7 +49,7 @@ namespace TacticalEcho.DebugTools
 
                 foreach (KeyValuePair<TacticalActionId, float> pair in evaluator.LastScores)
                 {
-                    builder.Append(pair.Key)
+                    text.Append(pair.Key)
                         .Append(": ")
                         .AppendLine(pair.Value.ToString("0.00"));
                 }
@@ -49,13 +57,11 @@ namespace TacticalEcho.DebugTools
 
             if (observedBrain.Memory != null && observedBrain.Memory.HasKnownPosition)
             {
-                builder.Append("Memory confidence: ")
+                text.Append("Memory confidence: ")
                     .AppendLine(observedBrain.Memory.Confidence.ToString("0.00"));
-                builder.Append("Last known: ")
+                text.Append("Last known: ")
                     .AppendLine(observedBrain.Memory.LastKnownPosition.ToString("F1"));
             }
-
-            outputText.text = builder.ToString();
         }
     }
 }

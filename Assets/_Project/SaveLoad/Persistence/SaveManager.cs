@@ -11,9 +11,22 @@ namespace TacticalEcho.SaveLoad.Persistence
     {
         private readonly List<ISaveParticipant> participants = new();
 
-        private string MainPath => Path.Combine(Application.persistentDataPath, "tactical-echo-save.json");
-        private string TempPath => MainPath + ".tmp";
-        private string BackupPath => MainPath + ".bak";
+        public string MainPath => Path.Combine(Application.persistentDataPath, "tactical-echo-save.json");
+        public string TempPath => MainPath + ".tmp";
+        public string BackupPath => MainPath + ".bak";
+
+        public int ParticipantCount => participants.Count;
+        public bool HasSaveFile => File.Exists(MainPath);
+        public bool HasBackupFile => File.Exists(BackupPath);
+
+        public bool LastSaveSucceeded { get; private set; }
+        public string LastSaveError { get; private set; } = string.Empty;
+        public DateTime LastSaveUtc { get; private set; }
+
+        public SaveLoadStatus LastLoadStatus { get; private set; } = SaveLoadStatus.NotAttempted;
+        public string LastLoadReason { get; private set; } = string.Empty;
+        public bool LastLoadUsedBackup { get; private set; }
+        public int LastLoadedSchemaVersion { get; private set; }
 
         public void Register(ISaveParticipant participant)
         {
@@ -28,59 +41,125 @@ namespace TacticalEcho.SaveLoad.Persistence
             participants.Remove(participant);
         }
 
-        public void Save()
+        public bool Save()
         {
             SaveGameData data = new()
             {
+                schemaVersion = SaveSchema.CurrentVersion,
                 timestampUtcTicks = DateTime.UtcNow.Ticks
             };
 
             foreach (ISaveParticipant participant in participants)
             {
-                data.records.Add(participant.CaptureState());
-            }
-
-            string json = JsonUtility.ToJson(data, true);
-            File.WriteAllText(TempPath, json);
-
-            if (File.Exists(MainPath))
-            {
-                File.Replace(TempPath, MainPath, BackupPath);
-            }
-            else
-            {
-                File.Move(TempPath, MainPath);
-            }
-        }
-
-        public bool TryLoad(out SaveGameData data)
-        {
-            if (TryRead(MainPath, out data))
-            {
-                return true;
-            }
-
-            return TryRead(BackupPath, out data);
-        }
-
-        private static bool TryRead(string path, out SaveGameData data)
-        {
-            data = null;
-            if (!File.Exists(path))
-            {
-                return false;
+                SaveRecord record = participant?.CaptureState();
+                if (record != null)
+                {
+                    data.records.Add(record);
+                }
             }
 
             try
             {
-                data = JsonUtility.FromJson<SaveGameData>(File.ReadAllText(path));
-                return data != null;
+                string json = JsonUtility.ToJson(data, true);
+                File.WriteAllText(TempPath, json);
+
+                if (File.Exists(MainPath))
+                {
+                    File.Replace(TempPath, MainPath, BackupPath);
+                }
+                else
+                {
+                    File.Move(TempPath, MainPath);
+                }
+
+                LastSaveSucceeded = true;
+                LastSaveError = string.Empty;
+                LastSaveUtc = new DateTime(data.timestampUtcTicks, DateTimeKind.Utc);
+                return true;
             }
             catch (Exception exception)
             {
-                Debug.LogWarning($"Failed to read save file '{path}': {exception.Message}");
+                LastSaveSucceeded = false;
+                LastSaveError = exception.Message;
+                Debug.LogWarning($"[Save] Failed to write save file: {exception.Message}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Reads, migrates and validates the save. The main file is only accepted once
+        /// <see cref="SaveSchema"/> says the data is usable, so a file that parses but is
+        /// structurally broken falls through to the backup instead of being handed to
+        /// participants.
+        /// </summary>
+        public bool TryLoad(out SaveGameData data)
+        {
+            LastLoadUsedBackup = false;
+            if (TryReadPrepared(MainPath, out data, out SaveLoadStatus mainStatus, out string mainReason))
+            {
+                Accept(mainStatus, mainReason, data);
+                return true;
+            }
+
+            if (TryReadPrepared(BackupPath, out data, out SaveLoadStatus backupStatus, out string backupReason))
+            {
+                LastLoadUsedBackup = true;
+                Accept(backupStatus, backupReason, data);
+                Debug.LogWarning($"[Save] Main save was unusable ({mainReason}); loaded the backup instead.");
+                return true;
+            }
+
+            // Report the main file's problem: it is the one the player expects to load.
+            LastLoadStatus = mainStatus != SaveLoadStatus.MissingFile ? mainStatus : backupStatus;
+            LastLoadReason = mainStatus != SaveLoadStatus.MissingFile ? mainReason : backupReason;
+            LastLoadedSchemaVersion = 0;
+            data = null;
+            return false;
+        }
+
+        private void Accept(SaveLoadStatus status, string reason, SaveGameData data)
+        {
+            LastLoadStatus = status;
+            LastLoadReason = reason;
+            LastLoadedSchemaVersion = data.schemaVersion;
+        }
+
+        private static bool TryReadPrepared(
+            string path,
+            out SaveGameData data,
+            out SaveLoadStatus status,
+            out string reason)
+        {
+            data = null;
+
+            if (!File.Exists(path))
+            {
+                status = SaveLoadStatus.MissingFile;
+                reason = "no save file";
+                return false;
+            }
+
+            SaveGameData parsed;
+            try
+            {
+                parsed = JsonUtility.FromJson<SaveGameData>(File.ReadAllText(path));
+            }
+            catch (Exception exception)
+            {
+                status = SaveLoadStatus.Unreadable;
+                reason = exception.Message;
+                Debug.LogWarning($"[Save] Failed to read save file '{path}': {exception.Message}");
+                return false;
+            }
+
+            if (!SaveSchema.TryPrepare(parsed, out status, out reason))
+            {
+                Debug.LogWarning($"[Save] Rejected save file '{path}': {reason}");
+                return false;
+            }
+
+            data = parsed;
+            return true;
         }
     }
 }
