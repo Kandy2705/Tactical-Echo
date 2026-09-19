@@ -79,7 +79,7 @@ Load
  -> restore by StableId
 ```
 
-The current foundation already separates participants from persistence. Migration and validation are the next implementation layer.
+`SaveSchema` owns the version number this build writes, what a valid save may contain, and how an older one is brought up to date; `SaveManager` owns the files and the participants and asks `SaveSchema` whether parsed data may be trusted. A load reads, rejects anything written by a newer build, walks one migration step per version until the data reaches the current schema, then validates it - records present, every record carrying a non-blank and unique `stableId`, a representable timestamp. Only data that passes all three is handed back, so a file that parses but is structurally broken falls through to the backup instead of reaching participants. Migration steps are keyed by the version they upgrade *from* and always produce that version plus one: adding a schema field means adding the step that fills it in for older saves, never special-casing a version at the call site. Restore orchestration - matching records back to participants by `StableId` - is still open.
 
 ## Camera and animation
 
@@ -91,7 +91,7 @@ Text UI uses TextMeshPro (`TMP_Text`/`TextMeshProUGUI`), not legacy `UnityEngine
 
 ## Debugging
 
-`AIDebugOverlay` displays state, tactical action scores and memory information. Scene gizmos visualize perception and remembered positions. Debug code observes runtime systems and does not become a gameplay dependency.
+Every overlay derives from `DebugOverlayBase`, which owns the shared shape: an optional authored TextMeshPro target, a screen-space text the overlay builds for itself when none is assigned, and one text rebuild per frame. `AIDebugOverlay` shows state, tactical action scores and memory; `WeaponDebugOverlay` shows ammo, reload timing and the spread cone that actually drives shot direction; `StatusEffectDebugOverlay` shows active effects with stacks, remaining duration and the damage-over-time tick; `SaveDebugOverlay` shows what is on disk plus the result of the last versioned/validated read. Scene gizmos visualize perception and remembered positions. Debug code observes runtime systems and never becomes a gameplay dependency - the save and load keys on `SaveDebugOverlay` are a harness for exercising the save pipeline, not something gameplay reads.
 
 ## Character physics
 
