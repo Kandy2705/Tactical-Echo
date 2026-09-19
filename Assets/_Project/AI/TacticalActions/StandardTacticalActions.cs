@@ -11,6 +11,7 @@ namespace TacticalEcho.AI.TacticalActions
         public bool CanExecute(in TacticalContext context)
         {
             return context.HasLineOfSight
+                && context.TargetIsAlive
                 && context.AmmoRatio > 0f
                 && !context.IsReloading;
         }
@@ -31,7 +32,7 @@ namespace TacticalEcho.AI.TacticalActions
 
         public void Execute(EnemyBrain brain, in TacticalContext context)
         {
-            if (brain == null || brain.Weapon == null || !context.HasLineOfSight)
+            if (brain == null || brain.Weapon == null || !context.HasLineOfSight || !context.TargetIsAlive)
             {
                 return;
             }
