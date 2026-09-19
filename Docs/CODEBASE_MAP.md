@@ -56,10 +56,10 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | Status-effect config | `StatusEffectDefinition.cs` | Immutable effect data, including optional damage-over-time (`damagePerTick`/`tickInterval`). |
 | Status-effect runtime duration/stack | `StatusEffectInstance.cs` | Mutable instance state. |
 | Active status effects | `StatusEffectController.cs` | Apply, stack, expire, tick damage-over-time through the shared damage pipeline, and answer `HasEffect(effectId)` for consumers such as EnemyBrain. |
-| Item config | `ItemDefinition.cs` | Immutable item data. |
+| Item config | `ItemDefinition.cs` | Immutable item data, including the `WeaponDefinition` a weapon item equips. |
 | Runtime item identity/quantity | `ItemInstance.cs` | Runtime item state. |
 | Inventory contents | `InventoryController.cs` | Add/remove/own item collection. |
-| Primary/secondary equipment | `EquipmentController.cs` | Equipment slot ownership. |
+| Primary/secondary equipment | `EquipmentController.cs` | Equipment slot ownership, starting loadout and active-slot selection. |
 | Save participant contract | `ISaveParticipant.cs` | Capture/restore contract. |
 | Save schema/records | `SaveGameData.cs` | Serialized save DTOs. |
 | Save files, temp/backup/load | `SaveManager.cs` | Persistence orchestration. |
@@ -147,7 +147,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | `Combat/Weapons/FireMode.cs` | Weapon fire-mode identifiers | Add a fire mode only when weapon behavior genuinely needs it | Fire timing implementation |
 | `Combat/Weapons/WeaponDefinition.cs` | Immutable weapon tuning/configuration | New static weapon properties | Ammo/cooldown/reload runtime values |
 | `Combat/Weapons/WeaponRuntime.cs` | Mutable ammo, fire cooldown, reload state and spread | Runtime gun state/rules | Physics raycasts, VFX or UI |
-| `Combat/Weapons/WeaponController.cs` | Weapon execution: firing/hitscan, hit resolution, damage dispatch, reload lifecycle, noise and immediate shot feedback | Shared weapon execution used by Player and Enemy | Player input, AI tactical scoring, HUD implementation |
+| `Combat/Weapons/WeaponController.cs` | Weapon execution: firing/hitscan, hit resolution, damage dispatch, reload lifecycle, noise, immediate shot feedback, and one `WeaponRuntime` per definition so a swapped-away weapon keeps its ammo (`Equip`) | Shared weapon execution used by Player and Enemy | Player input, AI tactical scoring, HUD implementation, which weapon should be in hand |
 | `Combat/Weapons/WeaponAudioProfile.cs` | Weapon sound asset references | Fire/reload sound data | Playback timing rules unrelated to weapon execution |
 | `Combat/Weapons/WeaponGripPoints.cs` | Right/left grip and muzzle anchors | Weapon attachment/grip anchor data | Character animation decisions |
 
@@ -169,10 +169,10 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 
 | File | Owns | Extend here when | Keep out |
 | --- | --- | --- | --- |
-| `Inventory/Items/ItemDefinition.cs` | Immutable item identity/display/type/max stack/icon | Static item data | Runtime quantity/ownership |
+| `Inventory/Items/ItemDefinition.cs` | Immutable item identity/display/type/max stack/icon, and the `WeaponDefinition` link for weapon items | Static item data | Runtime quantity/ownership; any ballistics value that belongs on `WeaponDefinition` |
 | `Inventory/Items/ItemInstance.cs` | Runtime item instance ID, definition and quantity | Mutable per-item state | Inventory collection policy |
 | `Inventory/InventoryController.cs` | Owning and mutating the item collection | Add/remove/stack inventory behavior | Direct UI collection mutation |
-| `Inventory/Equipment/EquipmentController.cs` | Primary/secondary equipment slot ownership | Equip/unequip/switch-slot behavior | Weapon firing implementation |
+| `Inventory/Equipment/EquipmentController.cs` | Primary/secondary slot ownership, starting loadout, which slot is active, and pushing that slot's `WeaponDefinition` into the character's `WeaponController` | Equip/unequip/switch-slot behavior, loadout rules | Weapon firing implementation, ammo bookkeeping |
 
 ### Optimization
 
@@ -205,7 +205,7 @@ The foundation intentionally contains several unfinished extension points. Futur
 - `CameraObstructionHandler` now fades obstructing renderers via `MaterialPropertyBlock` (alpha on `_BaseColor`), not just querying for them. This only has a visible effect on materials whose Surface Type is Transparent/Fade - extend this component (not a new one) once obstructing geometry uses such materials. Camera collision (physically pulling the camera in front of geometry) is still not implemented.
 - `SaveManager` already owns main/temp/backup persistence and `ISaveParticipant` already defines capture/restore. Validation, migration and restoration should grow inside the SaveLoad boundary rather than as unrelated gameplay managers.
 - `StatusEffectDefinition`/`StatusEffectInstance`/`StatusEffectController` establish the status pipeline. `WeaponController` applies Suppression on any damaging hit and Bleed on a critical hit (`suppressionOnHit`/`bleedOnCriticalHit`), and `EnemyBrain` reads Suppression through `StatusEffectController.HasEffect` into `TacticalContext.Suppression` - both Player and Enemy weapons apply the same definitions, so this is not hard-coded per class. `Bleed_Standard.asset`/`Suppression_Standard.asset` live under `Combat/StatusEffects/Definitions/`. Slow is not implemented yet - feed it through the same pipeline (a definition with a movement-speed modifier read by `EnemyMovement`/`PlayerController`) rather than adding a parallel system. Player currently has no `StatusEffectController` attached, so Bleed only affects Enemy until one is added to `Player_Kaia.prefab`.
-- `InventoryController` and `EquipmentController` already establish inventory/equipment ownership. Future UI should use their APIs rather than maintaining a second inventory list.
+- `InventoryController` and `EquipmentController` already establish inventory/equipment ownership, are attached to both the Player and Enemy prefabs, and drive the weapon in hand through `WeaponController.Equip`. Future UI should use their APIs rather than maintaining a second inventory list, and a new weapon should be a `WeaponDefinition` plus an `ItemDefinition` that points at it - not a new controller or a second weapon field on a character.
 
 ## Current ownership drift to avoid copying
 
@@ -236,6 +236,8 @@ Do **not** create a class merely because the feature has a new name, needs a few
 - Player Animator controller: `Assets/_Project/Animation/Controllers/Player_Kaia_Locomotion.controller`
 - Rifle definition: `Assets/_Project/Combat/Weapons/Definitions/Rifle_HK416.asset`
 - Status effect definitions: `Assets/_Project/Combat/StatusEffects/Definitions/Suppression_Standard.asset`, `Bleed_Standard.asset`
+- Weapon definitions: `Assets/_Project/Combat/Weapons/Definitions/Rifle_HK416.asset` (primary), `Sidearm_M9.asset` (secondary)
+- Weapon item definitions: `Assets/_Project/Inventory/Items/Definitions/Item_Rifle_HK416.asset`, `Item_Sidearm_M9.asset` - these are what the prefabs' `EquipmentController` starting loadout references
 - Physics layer `CharacterHitZone` (layer 17, `ProjectSettings/TagManager.asset`): every `DamageHitZone` collider lives here and the layer is ignored against all 32 layers at startup. Body-part colliders hang off animated bones, so as solid geometry they teleport into characters and a CharacterController resolves the overlap in one frame - that is what threw the player into the sky. Raycasts ignore the collision matrix, so weapons still hit them. Do not move hit zones back onto Default.
 - Shared death animation resource: `Assets/_ThirdParty/Animations/Resources/Death/Death_From_Front_Headshot.fbx` - imported as Humanoid so it retargets onto Kaia's Avatar; verify the auto-generated bone mapping under Rig > Configure... if it is ever reimported.
 

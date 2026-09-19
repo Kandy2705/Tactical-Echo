@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TacticalEcho.Combat.Damage;
 using TacticalEcho.Combat.Impacts;
 using TacticalEcho.Combat.StatusEffects;
@@ -51,6 +52,7 @@ namespace TacticalEcho.Combat.Weapons
         public event Action ReloadStarted;
         public event Action ReloadCompleted;
         public event Action<int, int> AmmoChanged;
+        public event Action<WeaponDefinition> WeaponChanged;
 
         public WeaponRuntime Runtime { get; private set; }
         public WeaponDefinition Definition => definition;
@@ -61,6 +63,11 @@ namespace TacticalEcho.Combat.Weapons
         private AudioSource audioSource;
         private Light muzzleFlashLight;
         private float muzzleFlashEndTime;
+
+        // One runtime per definition, for the lifetime of this controller: swapping back to a
+        // previously held weapon must return its magazine and reserve as they were left, not
+        // hand back a freshly loaded gun.
+        private readonly Dictionary<WeaponDefinition, WeaponRuntime> runtimeByDefinition = new();
 
         private ShotTracer[] tracerPool;
         private int nextTracerIndex;
@@ -114,6 +121,26 @@ namespace TacticalEcho.Combat.Weapons
             {
                 Destroy(tracerMaterial);
             }
+        }
+
+        /// <summary>
+        /// Switches which weapon this controller fires, keeping each weapon's own ammo state.
+        /// EquipmentController calls this when the active slot changes; firing, reloading and
+        /// spread stay owned here.
+        /// </summary>
+        public bool Equip(WeaponDefinition weaponDefinition)
+        {
+            if (weaponDefinition == null || weaponDefinition == definition)
+            {
+                return false;
+            }
+
+            Runtime?.CancelReload();
+            definition = weaponDefinition;
+            InitializeRuntime();
+            ResolveAudioProfile();
+            WeaponChanged?.Invoke(definition);
+            return true;
         }
 
         public void Configure(WeaponDefinition weaponDefinition, Transform muzzleTransform)
@@ -220,11 +247,20 @@ namespace TacticalEcho.Combat.Weapons
 
         private void InitializeRuntime()
         {
-            Runtime = definition != null ? new WeaponRuntime(definition) : null;
-            if (Runtime != null)
+            if (definition == null)
             {
-                AmmoChanged?.Invoke(Runtime.MagazineAmmo, Runtime.ReserveAmmo);
+                Runtime = null;
+                return;
             }
+
+            if (!runtimeByDefinition.TryGetValue(definition, out WeaponRuntime runtime))
+            {
+                runtime = new WeaponRuntime(definition);
+                runtimeByDefinition[definition] = runtime;
+            }
+
+            Runtime = runtime;
+            AmmoChanged?.Invoke(Runtime.MagazineAmmo, Runtime.ReserveAmmo);
         }
 
         private void ResolveAudioProfile()

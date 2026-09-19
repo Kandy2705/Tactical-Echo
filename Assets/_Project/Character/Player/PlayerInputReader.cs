@@ -17,6 +17,11 @@ namespace TacticalEcho.Character.Player
         [Tooltip("When no Aim InputAction is assigned, right click toggles aim so a trackpad/mouse can fire without holding two buttons at once.")]
         [SerializeField] private bool toggleMouseAim = true;
 
+        [Header("Equipment")]
+        [Tooltip("Optional. When no InputAction is assigned, 1 and 2 select the primary and secondary weapon slot, matching the keyboard-fallback pattern already used for Reload.")]
+        [SerializeField] private InputActionReference primaryWeaponAction;
+        [SerializeField] private InputActionReference secondaryWeaponAction;
+
         [Header("Camera")]
         [Tooltip("Optional. When no InputAction is assigned, Q switches the over-the-shoulder camera side, matching the keyboard-fallback pattern already used for Reload.")]
         [SerializeField] private InputActionReference switchShoulderAction;
@@ -32,6 +37,8 @@ namespace TacticalEcho.Character.Player
         public bool IsFiring => IsPressed(fireAction) || (Mouse.current != null && Mouse.current.leftButton.isPressed);
         public bool FirePressedThisFrame => WasPressedThisFrame(fireAction) || (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame);
         public bool ReloadPressedThisFrame => WasPressedThisFrame(reloadAction) || (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame);
+        public bool PrimaryWeaponPressedThisFrame => WasPressedThisFrame(primaryWeaponAction) || (Keyboard.current != null && Keyboard.current.digit1Key.wasPressedThisFrame);
+        public bool SecondaryWeaponPressedThisFrame => WasPressedThisFrame(secondaryWeaponAction) || (Keyboard.current != null && Keyboard.current.digit2Key.wasPressedThisFrame);
         public bool SwitchShoulderPressedThisFrame => WasPressedThisFrame(switchShoulderAction) || (Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame);
 
         public bool IsAiming
@@ -83,6 +90,8 @@ namespace TacticalEcho.Character.Player
             SetEnabled(reloadAction, true);
             SetEnabled(aimAction, true);
             SetEnabled(switchShoulderAction, true);
+            SetEnabled(primaryWeaponAction, true);
+            SetEnabled(secondaryWeaponAction, true);
         }
 
         private void OnDisable()
@@ -95,6 +104,8 @@ namespace TacticalEcho.Character.Player
             SetEnabled(reloadAction, false);
             SetEnabled(aimAction, false);
             SetEnabled(switchShoulderAction, false);
+            SetEnabled(primaryWeaponAction, false);
+            SetEnabled(secondaryWeaponAction, false);
         }
 
         public void Configure(

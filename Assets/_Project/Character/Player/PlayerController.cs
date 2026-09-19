@@ -3,6 +3,7 @@ using TacticalEcho.CameraSystem;
 using TacticalEcho.Combat.Damage;
 using TacticalEcho.Combat.Health;
 using TacticalEcho.Combat.Weapons;
+using TacticalEcho.Inventory.Equipment;
 using TacticalEcho.UI;
 using UnityEngine;
 
@@ -20,6 +21,7 @@ namespace TacticalEcho.Character.Player
         [SerializeField] private Transform aimOrigin;
         [SerializeField] private PlayerAnimationController animationController;
         [SerializeField] private Health health;
+        [SerializeField] private EquipmentController equipment;
 
         [Header("Movement")]
         [SerializeField, Min(0f)] private float walkSpeed = 4.5f;
@@ -57,6 +59,8 @@ namespace TacticalEcho.Character.Player
                 health = gameObject.AddComponent<Health>();
             }
 
+            equipment = equipment != null ? equipment : GetComponent<EquipmentController>();
+
             combatHud = GetComponent<PlayerCombatHud>();
             if (combatHud == null)
             {
@@ -88,6 +92,7 @@ namespace TacticalEcho.Character.Player
             UpdateRotation();
             UpdateCameraMode();
             UpdateShoulderSwitch();
+            UpdateEquipment();
             UpdateCombat();
             UpdateAnimation();
         }
@@ -285,6 +290,27 @@ namespace TacticalEcho.Character.Player
             if (playerCamera != null && input.SwitchShoulderPressedThisFrame)
             {
                 playerCamera.SwitchShoulder();
+            }
+        }
+
+        /// <summary>
+        /// Input only selects a slot. EquipmentController decides whether the slot can be
+        /// brought into hand and what that means for the weapon.
+        /// </summary>
+        private void UpdateEquipment()
+        {
+            if (equipment == null)
+            {
+                return;
+            }
+
+            if (input.PrimaryWeaponPressedThisFrame)
+            {
+                equipment.TrySetActiveSlot(EquipmentSlot.PrimaryWeapon);
+            }
+            else if (input.SecondaryWeaponPressedThisFrame)
+            {
+                equipment.TrySetActiveSlot(EquipmentSlot.SecondaryWeapon);
             }
         }
 
