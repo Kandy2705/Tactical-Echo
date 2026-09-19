@@ -18,3 +18,4 @@ MonoBehaviour:
   stackRule: 1
   damagePerTick: 3
   tickInterval: 1
+  moveSpeedMultiplier: 1

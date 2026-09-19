@@ -13,6 +13,41 @@ namespace TacticalEcho.Combat.StatusEffects
         public event Action EffectsChanged;
         public IReadOnlyList<StatusEffectInstance> ActiveEffects => activeEffects;
 
+        /// <summary>
+        /// Combined movement speed multiplier of every active effect, stack by stack. This is
+        /// the read side of the modifier lifecycle: movement owners multiply their own speed
+        /// by this instead of each effect reaching into movement code.
+        /// </summary>
+        public float MoveSpeedMultiplier
+        {
+            get
+            {
+                float multiplier = 1f;
+
+                for (int i = 0; i < activeEffects.Count; i++)
+                {
+                    StatusEffectInstance instance = activeEffects[i];
+                    if (instance?.Definition == null)
+                    {
+                        continue;
+                    }
+
+                    float perStack = instance.Definition.MoveSpeedMultiplier;
+                    if (Mathf.Approximately(perStack, 1f))
+                    {
+                        continue;
+                    }
+
+                    for (int stack = 0; stack < instance.StackCount; stack++)
+                    {
+                        multiplier *= perStack;
+                    }
+                }
+
+                return Mathf.Clamp(multiplier, 0.05f, 2f);
+            }
+        }
+
         private void Awake()
         {
             // Damage-over-time effects (Bleed) flow through whatever IDamageable already owns

@@ -1,4 +1,5 @@
 using TacticalEcho.Character.Player;
+using TacticalEcho.CameraSystem.Obstruction;
 using TacticalEcho.Combat.Damage;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,6 +16,8 @@ namespace TacticalEcho.CameraSystem
     {
         [Header("References")]
         [SerializeField] private Transform target;
+        [Tooltip("Optional. Owns obstruction fade and the camera-collision push. Resolved from this GameObject when empty.")]
+        [SerializeField] private CameraObstructionHandler obstruction;
         [SerializeField] private PlayerInputReader input;
 
         [Header("Offsets")]
@@ -87,6 +90,16 @@ namespace TacticalEcho.CameraSystem
         {
             gameplayCamera = GetComponent<Camera>();
             currentOffset = exploreOffset;
+
+            if (obstruction == null)
+            {
+                obstruction = GetComponent<CameraObstructionHandler>();
+            }
+
+            // The handler needs to know what the camera is looking at for both its fade scan
+            // and its collision cast; the camera controller is the one that knows.
+            obstruction?.Configure(target);
+
             CreateCrosshair();
         }
 
@@ -130,6 +143,9 @@ namespace TacticalEcho.CameraSystem
             input = inputReader;
             currentOffset = Mode == CameraMode.Aim ? aimOffset : exploreOffset;
             SyncLookAnglesFromTransform();
+
+            // Keep the obstruction handler pointed at whatever the camera now follows.
+            obstruction?.Configure(target);
         }
 
         public void SetMode(CameraMode mode)
@@ -221,6 +237,14 @@ namespace TacticalEcho.CameraSystem
             currentOffset = Vector3.Lerp(currentOffset, targetOffset, aimBlend);
 
             Vector3 desiredPosition = target.position + desiredRotation * currentOffset;
+
+            // Obstruction ownership lives in CameraObstructionHandler; positioning lives here.
+            // Resolving before the smoothing lerp means the camera slides along a wall instead
+            // of snapping once it is already inside it.
+            if (obstruction != null)
+            {
+                desiredPosition = obstruction.ResolveCameraPosition(target, desiredPosition);
+            }
 
             float positionT = 1f - Mathf.Exp(-followSharpness * Time.unscaledDeltaTime);
             float rotationT = 1f - Mathf.Exp(-rotationSharpness * Time.unscaledDeltaTime);
