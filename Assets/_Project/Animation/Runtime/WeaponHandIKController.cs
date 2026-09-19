@@ -67,11 +67,6 @@ namespace TacticalEcho.AnimationSystem.Runtime
                 CorrectWeaponFacingIfNeeded();
             }
 
-            if (animator == null || gripPoints == null || gripPoints.LeftHandGrip == null)
-            {
-                return;
-            }
-
             if (upperBodyLayerIndex < 0)
             {
                 ResolveUpperBodyLayer();
@@ -97,7 +92,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
         {
             weaponFacingChecked = true;
 
-            if (animator == null || !animator.isHuman || gripPoints == null)
+            if (!animator.isHuman)
             {
                 return;
             }
@@ -106,11 +101,6 @@ namespace TacticalEcho.AnimationSystem.Runtime
             Transform leftGrip = gripPoints.LeftHandGrip;
             Transform rightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
             Transform weaponMount = gripPoints.transform.parent;
-
-            if (rightGrip == null || leftGrip == null || rightHand == null || weaponMount == null)
-            {
-                return;
-            }
 
             PlayerController player = animator.GetComponentInParent<PlayerController>();
             Transform characterRoot = player != null ? player.transform : animator.transform;
@@ -179,12 +169,6 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         private void ResolveUpperBodyLayer()
         {
-            if (animator == null || animator.runtimeAnimatorController == null)
-            {
-                upperBodyLayerIndex = -1;
-                return;
-            }
-
             upperBodyLayerIndex = animator.GetLayerIndex(upperBodyLayerName);
         }
     }

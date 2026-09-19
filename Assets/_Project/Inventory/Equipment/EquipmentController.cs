@@ -46,7 +46,6 @@ namespace TacticalEcho.Inventory.Equipment
 
         private void Awake()
         {
-            ResolveReferences();
             ApplyStartingLoadout();
         }
 
@@ -54,7 +53,6 @@ namespace TacticalEcho.Inventory.Equipment
         {
             weapon = weaponController;
             inventory = inventoryController;
-            ResolveReferences();
             ApplyActiveWeapon();
         }
 
@@ -138,17 +136,12 @@ namespace TacticalEcho.Inventory.Equipment
             }
 
             ItemInstance item = new(itemDefinition);
-            inventory?.Add(item);
+            inventory.Add(item);
             Equip(slot, item);
         }
 
         private void ApplyActiveWeapon()
         {
-            if (weapon == null)
-            {
-                return;
-            }
-
             ItemInstance active = ActiveItem;
             WeaponDefinition weaponDefinition = active?.Definition != null
                 ? active.Definition.WeaponDefinition
@@ -160,17 +153,5 @@ namespace TacticalEcho.Inventory.Equipment
             }
         }
 
-        private void ResolveReferences()
-        {
-            if (inventory == null)
-            {
-                inventory = GetComponent<InventoryController>();
-            }
-
-            if (weapon == null)
-            {
-                weapon = GetComponentInChildren<WeaponController>(true);
-            }
-        }
     }
 }

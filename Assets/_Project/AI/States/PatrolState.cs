@@ -33,7 +33,7 @@ namespace TacticalEcho.AI.States
             if (Route == null || !Route.HasWaypoints)
             {
                 waypointIndex = -1;
-                Brain.Movement?.Stop();
+                Brain.Movement.Stop();
                 return;
             }
 
@@ -45,7 +45,7 @@ namespace TacticalEcho.AI.States
 
         public override void Tick(float deltaTime)
         {
-            if (waypointIndex < 0 || Brain.Movement == null)
+            if (waypointIndex < 0)
             {
                 return;
             }
@@ -86,7 +86,7 @@ namespace TacticalEcho.AI.States
         {
             isDwelling = false;
             dwellRemaining = 0f;
-            Brain.Movement?.Stop();
+            Brain.Movement.Stop();
         }
 
         private void AdvanceWaypoint()
@@ -123,7 +123,7 @@ namespace TacticalEcho.AI.States
 
                 repathTimer = 0f;
 
-                if (Brain.Movement == null || Brain.Movement.SetDestination(position, WaypointStoppingDistance))
+                if (Brain.Movement.SetDestination(position, WaypointStoppingDistance))
                 {
                     return;
                 }

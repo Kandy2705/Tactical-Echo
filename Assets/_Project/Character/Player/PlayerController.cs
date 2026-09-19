@@ -46,23 +46,16 @@ namespace TacticalEcho.Character.Player
         private bool isDead;
 
         public Vector3 PlanarVelocity { get; private set; }
-        public bool IsGrounded => characterController != null && characterController.isGrounded;
-        public bool IsAiming => !isDead && input != null && input.IsAiming;
-        public bool IsSprinting => !isDead && input != null && input.IsSprinting && !IsAiming;
+        public bool IsGrounded => characterController.isGrounded;
+        public bool IsAiming => !isDead && input.IsAiming;
+        public bool IsSprinting => !isDead && input.IsSprinting && !IsAiming;
         public bool IsDead => isDead;
         public Health Health => health;
 
         private void Awake()
         {
             characterController = GetComponent<CharacterController>();
-            health = health != null ? health : GetComponent<Health>();
-            if (health == null)
-            {
-                health = gameObject.AddComponent<Health>();
-            }
-
-            equipment = equipment != null ? equipment : GetComponent<EquipmentController>();
-            statusEffects = statusEffects != null ? statusEffects : GetComponent<StatusEffectController>();
+            health = GetComponent<Health>();
 
             combatHud = GetComponent<PlayerCombatHud>();
             if (combatHud == null)
@@ -75,7 +68,7 @@ namespace TacticalEcho.Character.Player
         {
             BindWeaponEvents();
             BindHealthEvents();
-            combatHud?.Configure(weapon);
+            combatHud.Configure(weapon);
         }
 
         private void OnDisable()
@@ -86,21 +79,11 @@ namespace TacticalEcho.Character.Player
 
         private void Update()
         {
-            if (characterController == null)
-            {
-                return;
-            }
-
             if (isDead)
             {
                 // Input stops at death; gravity does not. Without this the corpse freezes at
                 // whatever height it died at instead of dropping to the ground.
                 ApplyVerticalMovement();
-                return;
-            }
-
-            if (input == null)
-            {
                 return;
             }
 
@@ -129,7 +112,7 @@ namespace TacticalEcho.Character.Player
         {
             if (weapon == weaponController)
             {
-                combatHud?.Configure(weapon);
+                combatHud.Configure(weapon);
                 return;
             }
 
@@ -141,7 +124,7 @@ namespace TacticalEcho.Character.Player
                 BindWeaponEvents();
             }
 
-            combatHud?.Configure(weapon);
+            combatHud.Configure(weapon);
         }
 
         public void ConfigureCamera(PlayerCameraController cameraController, Transform orientation)
@@ -152,7 +135,7 @@ namespace TacticalEcho.Character.Player
 
         private void BindWeaponEvents()
         {
-            if (weapon == null || subscribedWeapon == weapon)
+            if (subscribedWeapon == weapon)
             {
                 return;
             }
@@ -177,7 +160,7 @@ namespace TacticalEcho.Character.Player
 
         private void BindHealthEvents()
         {
-            if (health == null || subscribedHealth == health)
+            if (subscribedHealth == health)
             {
                 return;
             }
@@ -189,7 +172,7 @@ namespace TacticalEcho.Character.Player
 
             if (isDead)
             {
-                animationController?.PlayDeath();
+                animationController.PlayDeath();
             }
         }
 
@@ -227,10 +210,10 @@ namespace TacticalEcho.Character.Player
             verticalVelocity = 0f;
             fireFacingUntilTime = 0f;
 
-            weapon?.CancelReload();
+            weapon.CancelReload();
             playerCamera?.SetMode(CameraMode.Explore);
-            animationController?.SetLocomotion(Vector2.zero, 0f, false, false);
-            animationController?.PlayDeath();
+            animationController.SetLocomotion(Vector2.zero, 0f, false, false);
+            animationController.PlayDeath();
         }
 
         private void UpdateMovement()
@@ -250,7 +233,7 @@ namespace TacticalEcho.Character.Player
             // Status effects modify movement through their combined multiplier; nothing in
             // the effect pipeline writes to movement directly.
             float speed = (IsSprinting ? sprintSpeed : walkSpeed)
-                          * (statusEffects != null ? statusEffects.MoveSpeedMultiplier : 1f);
+                          * statusEffects.MoveSpeedMultiplier;
             PlanarVelocity = desiredDirection * speed;
 
             ApplyVerticalMovement();
@@ -327,11 +310,6 @@ namespace TacticalEcho.Character.Player
         /// </summary>
         private void UpdateEquipment()
         {
-            if (equipment == null)
-            {
-                return;
-            }
-
             if (input.PrimaryWeaponPressedThisFrame)
             {
                 equipment.TrySetActiveSlot(EquipmentSlot.PrimaryWeapon);
@@ -344,11 +322,6 @@ namespace TacticalEcho.Character.Player
 
         private void UpdateCombat()
         {
-            if (weapon == null)
-            {
-                return;
-            }
-
             if (input.ReloadPressedThisFrame)
             {
                 if (weapon.TryBeginReload())
@@ -418,11 +391,6 @@ namespace TacticalEcho.Character.Player
 
         private void UpdateAnimation()
         {
-            if (animationController == null)
-            {
-                return;
-            }
-
             float normalizedSpeed = sprintSpeed > 0f
                 ? Mathf.Clamp01(PlanarVelocity.magnitude / sprintSpeed)
                 : 0f;

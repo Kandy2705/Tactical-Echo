@@ -6,20 +6,21 @@ using UnityEngine.AI;
 namespace TacticalEcho.AI.Navigation
 {
     [RequireComponent(typeof(NavMeshAgent))]
+    [RequireComponent(typeof(EnemyAnimationController))]
     public sealed class EnemyMovement : MonoBehaviour
     {
         [SerializeField, Min(0f)] private float stoppingTolerance = 0.25f;
         [SerializeField, Min(0f)] private float navMeshSnapDistance = 2f;
         [SerializeField, Min(0f)] private float navMeshSnapVerticalTolerance = 1f;
         [SerializeField, Min(0f)] private float rotationSharpness = 12f;
-        [SerializeField] private EnemyAnimationController animationController;
+        private EnemyAnimationController animationController;
         [Tooltip("Optional. Status effects that modify movement speed. Resolved from this GameObject when empty.")]
         [SerializeField] private StatusEffectController statusEffects;
 
         private NavMeshAgent agent;
         private float baseSpeed = -1f;
 
-        public bool IsOnNavMesh => agent != null && agent.isOnNavMesh;
+        public bool IsOnNavMesh => agent.isOnNavMesh;
         public bool HasPath => IsOnNavMesh && agent.hasPath;
         public bool HasReachedDestination => IsOnNavMesh
             && !agent.pathPending
@@ -27,8 +28,8 @@ namespace TacticalEcho.AI.Navigation
 
         private void Awake()
         {
-            ResolveAgent();
-            ResolveAnimationController();
+            agent = GetComponent<NavMeshAgent>();
+            animationController = GetComponent<EnemyAnimationController>();
         }
 
         private void Update()
@@ -43,11 +44,6 @@ namespace TacticalEcho.AI.Navigation
         /// </summary>
         private void ApplyStatusSpeedModifier()
         {
-            if (agent == null)
-            {
-                return;
-            }
-
             if (statusEffects == null)
             {
                 statusEffects = GetComponent<StatusEffectController>();
@@ -72,11 +68,7 @@ namespace TacticalEcho.AI.Navigation
             float height,
             bool updateRotation)
         {
-            ResolveAgent();
-            if (agent == null)
-            {
-                return;
-            }
+            agent = GetComponent<NavMeshAgent>();
 
             baseSpeed = Mathf.Max(0f, speed);
             agent.speed = baseSpeed;
@@ -95,12 +87,6 @@ namespace TacticalEcho.AI.Navigation
 
         public bool TrySnapToNavMesh(float maxDistance = -1f)
         {
-            ResolveAgent();
-            if (agent == null)
-            {
-                return false;
-            }
-
             if (agent.enabled && agent.isOnNavMesh)
             {
                 return true;
@@ -212,30 +198,8 @@ namespace TacticalEcho.AI.Navigation
                 && Mathf.Abs(hit.position.y - sourcePosition.y) <= navMeshSnapVerticalTolerance;
         }
 
-        private void ResolveAgent()
-        {
-            if (agent == null)
-            {
-                agent = GetComponent<NavMeshAgent>();
-            }
-        }
-
-        private void ResolveAnimationController()
-        {
-            if (animationController == null)
-            {
-                animationController = GetComponent<EnemyAnimationController>();
-            }
-        }
-
         private void UpdateLocomotionAnimation()
         {
-            ResolveAnimationController();
-            if (animationController == null)
-            {
-                return;
-            }
-
             float normalizedSpeed = 0f;
             if (IsOnNavMesh && agent.speed > 0.001f)
             {

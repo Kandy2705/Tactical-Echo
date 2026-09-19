@@ -32,20 +32,13 @@ namespace TacticalEcho.AI.TacticalActions
 
         public void Execute(EnemyBrain brain, in TacticalContext context)
         {
-            if (brain == null || brain.Weapon == null || !context.HasLineOfSight || !context.TargetIsAlive)
+            if (!context.HasLineOfSight || !context.TargetIsAlive)
             {
                 return;
             }
 
-            Transform visibleTarget = brain.Vision != null ? brain.Vision.VisibleTarget : null;
-            if (visibleTarget == null)
-            {
-                return;
-            }
-
-            Vector3 origin = brain.Vision != null && brain.Vision.EyeOrigin != null
-                ? brain.Vision.EyeOrigin.position
-                : brain.transform.position + Vector3.up * 1.5f;
+            Transform visibleTarget = brain.Vision.VisibleTarget;
+            Vector3 origin = brain.Vision.EyeOrigin.position;
             Vector3 targetPoint = visibleTarget.position + Vector3.up;
             Vector3 direction = targetPoint - origin;
             if (direction.sqrMagnitude <= 0.0001f)
@@ -53,13 +46,13 @@ namespace TacticalEcho.AI.TacticalActions
                 return;
             }
 
-            brain.Movement?.Stop();
-            brain.Movement?.FacePosition(targetPoint);
-            brain.AnimationController?.SetAim(true);
+            brain.Movement.Stop();
+            brain.Movement.FacePosition(targetPoint);
+            brain.AnimationController.SetAim(true);
 
             if (brain.Weapon.TryFire(origin, direction.normalized, 0f, true))
             {
-                brain.AnimationController?.PlayFire();
+                brain.AnimationController.PlayFire();
             }
         }
     }
@@ -87,13 +80,13 @@ namespace TacticalEcho.AI.TacticalActions
 
         public void Execute(EnemyBrain brain, in TacticalContext context)
         {
-            if (brain == null || !context.HasTargetPosition)
+            if (!context.HasTargetPosition)
             {
                 return;
             }
 
-            brain.AnimationController?.SetAim(context.HasLineOfSight);
-            brain.Movement?.SetDestination(context.TargetPosition, CombatStoppingDistance);
+            brain.AnimationController.SetAim(context.HasLineOfSight);
+            brain.Movement.SetDestination(context.TargetPosition, CombatStoppingDistance);
         }
     }
 
@@ -122,13 +115,13 @@ namespace TacticalEcho.AI.TacticalActions
 
         public void Execute(EnemyBrain brain, in TacticalContext context)
         {
-            if (brain == null || !context.CoverAvailable)
+            if (!context.CoverAvailable)
             {
                 return;
             }
 
-            brain.AnimationController?.SetAim(false);
-            brain.Movement?.SetDestination(context.CoverPosition, CoverStoppingDistance);
+            brain.AnimationController.SetAim(false);
+            brain.Movement.SetDestination(context.CoverPosition, CoverStoppingDistance);
         }
     }
 
@@ -160,7 +153,7 @@ namespace TacticalEcho.AI.TacticalActions
 
         public void Execute(EnemyBrain brain, in TacticalContext context)
         {
-            if (brain == null || !context.HasTargetPosition)
+            if (!context.HasTargetPosition)
             {
                 return;
             }
@@ -179,8 +172,8 @@ namespace TacticalEcho.AI.TacticalActions
                                   + awayFromTarget * DesiredRange
                                   + lateral * (LateralOffset * side);
 
-            brain.AnimationController?.SetAim(context.HasLineOfSight);
-            brain.Movement?.SetDestination(destination, RepositionStoppingDistance);
+            brain.AnimationController.SetAim(context.HasLineOfSight);
+            brain.Movement.SetDestination(destination, RepositionStoppingDistance);
         }
     }
 
@@ -213,13 +206,8 @@ namespace TacticalEcho.AI.TacticalActions
 
         public void Execute(EnemyBrain brain, in TacticalContext context)
         {
-            if (brain == null || brain.Weapon == null)
-            {
-                return;
-            }
-
-            brain.Movement?.Stop();
-            brain.AnimationController?.SetAim(false);
+            brain.Movement.Stop();
+            brain.AnimationController.SetAim(false);
 
             if (context.IsReloading)
             {
@@ -267,13 +255,8 @@ namespace TacticalEcho.AI.TacticalActions
 
         public void Execute(EnemyBrain brain, in TacticalContext context)
         {
-            if (brain == null)
-            {
-                return;
-            }
-
-            brain.Weapon?.CancelReload();
-            brain.AnimationController?.SetAim(false);
+            brain.Weapon.CancelReload();
+            brain.AnimationController.SetAim(false);
             brain.ChangeState(EnemyStateId.Retreat);
         }
     }

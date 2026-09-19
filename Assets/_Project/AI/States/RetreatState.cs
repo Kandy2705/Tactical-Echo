@@ -14,9 +14,9 @@ namespace TacticalEcho.AI.States
 
         public override void Enter()
         {
-            Brain.AnimationController?.SetAim(false);
+            Brain.AnimationController.SetAim(false);
 
-            if (Brain.Memory == null || !Brain.Memory.HasKnownPosition || Brain.Movement == null)
+            if (!Brain.Memory.HasKnownPosition)
             {
                 FinishRetreat();
                 return;
@@ -40,7 +40,7 @@ namespace TacticalEcho.AI.States
 
         public override void Tick(float deltaTime)
         {
-            if (!hasRetreatDestination || Brain.Movement == null)
+            if (!hasRetreatDestination)
             {
                 return;
             }
@@ -56,18 +56,18 @@ namespace TacticalEcho.AI.States
         public override void Exit()
         {
             hasRetreatDestination = false;
-            Brain.Movement?.Stop();
+            Brain.Movement.Stop();
         }
 
         private void FinishRetreat()
         {
-            if (Brain.Vision != null && Brain.Vision.HasLineOfSight && Brain.Vision.VisibleTarget != null)
+            if (Brain.Vision.HasLineOfSight && Brain.Vision.VisibleTarget != null)
             {
                 Brain.ChangeState(EnemyStateId.Combat);
                 return;
             }
 
-            if (Brain.Memory != null && Brain.Memory.HasKnownPosition)
+            if (Brain.Memory.HasKnownPosition)
             {
                 Brain.ChangeState(EnemyStateId.Search);
                 return;

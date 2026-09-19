@@ -8,9 +8,9 @@ namespace TacticalEcho.AI.States
 
         public override void Enter()
         {
-            Brain.Movement?.Stop();
-            Brain.Weapon?.CancelReload();
-            Brain.AnimationController?.PlayDeath();
+            Brain.Movement.Stop();
+            Brain.Weapon.CancelReload();
+            Brain.AnimationController.PlayDeath();
         }
     }
 }

@@ -42,7 +42,6 @@ namespace TacticalEcho.AI.Debugging
         private const string EnemyPrefabFolder = "Assets/_Project/Prefabs/Enemies";
         private const string EnemyPrefabPath = EnemyPrefabFolder + "/Enemy_PerceptionTest_Kaia.prefab";
         private const string PlayerPrefabPath = "Assets/_Project/Prefabs/Player/Player_Kaia.prefab";
-        private const string RifleDefinitionPath = "Assets/_Project/Combat/Weapons/Definitions/Rifle_HK416.asset";
 #endif
 
         private static readonly Vector3 RuntimeNavMeshSize = new(120f, 30f, 120f);
@@ -73,25 +72,22 @@ namespace TacticalEcho.AI.Debugging
             Transform player = playerVisual.transform;
             vision.Configure(eyeOrigin, player, Physics.DefaultRaycastLayers, Physics.DefaultRaycastLayers);
 
-            if (coverEvaluator != null)
+            CoverPoint[] coverPoints = FindCoverPoints(scene);
+            if (coverPoints.Length == 0)
             {
-                CoverPoint[] coverPoints = FindCoverPoints(scene);
-                if (coverPoints.Length == 0)
-                {
-                    coverPoints = CreateDemoCoverPoints(player);
-                }
-
-                coverEvaluator.SetCoverPoints(coverPoints);
-                Debug.Log($"[AI Perception Demo] Cover points available: {coverPoints.Length}.");
+                coverPoints = CreateDemoCoverPoints(player);
             }
+
+            coverEvaluator.SetCoverPoints(coverPoints);
+            Debug.Log($"[AI Perception Demo] Cover points available: {coverPoints.Length}.");
 
             brain.ConfigurePerception(vision, hearing, memory);
             brain.ConfigureExecution(movement, weapon, health, animationController);
             brain.ConfigureDecision(tacticalEvaluator, coverEvaluator);
-            gizmos?.Configure(brain);
+            gizmos.Configure(brain);
 
             Transform labelRoot = enemy.transform.Find("AI_StatusCanvas");
-            TMP_Text statusText = labelRoot != null ? labelRoot.GetComponentInChildren<TMP_Text>(true) : null;
+            TMP_Text statusText = labelRoot.GetComponentInChildren<TMP_Text>(true);
             view.Configure(brain, health, statusText, labelRoot);
 
             bool navMeshReady = EnsureNavigationAvailable(player);
@@ -102,7 +98,7 @@ namespace TacticalEcho.AI.Debugging
                 Debug.LogWarning("[AI Perception Demo] Enemy could not attach to a NavMesh. The authored enemy remains visible/debuggable, but movement will stay disabled. Verify nearby walkable ground and runtime NavMesh inputs.", enemy);
             }
 
-            Debug.Log($"[AI Perception Demo] Initialized scene-authored Enemy_01. Navigation={(enemyOnNavMesh ? "READY" : "NOT READY")}. Tactical={(tacticalEvaluator != null ? "READY" : "NOT READY")}. Weapon={(weapon != null ? "READY" : "NOT READY")}. Head 2.0x, torso 1.0x, arms 0.75x, legs 0.65x.", enemy);
+            Debug.Log($"[AI Perception Demo] Initialized scene-authored Enemy_01. Navigation={(enemyOnNavMesh ? "READY" : "NOT READY")}. Tactical=READY. Weapon=READY. Head 2.0x, torso 1.0x, arms 0.75x, legs 0.65x.", enemy);
         }
 
         private static CoverPoint[] FindCoverPoints(Scene scene)
@@ -111,7 +107,7 @@ namespace TacticalEcho.AI.Debugging
             System.Collections.Generic.List<CoverPoint> scenePoints = new();
             foreach (CoverPoint point in allPoints)
             {
-                if (point != null && point.gameObject.scene == scene) scenePoints.Add(point);
+                if (point.gameObject.scene == scene) scenePoints.Add(point);
             }
             return scenePoints.ToArray();
         }
@@ -274,7 +270,7 @@ namespace TacticalEcho.AI.Debugging
             PlayerVisualController[] players = Object.FindObjectsByType<PlayerVisualController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             foreach (PlayerVisualController player in players)
             {
-                if (player != null && player.gameObject.scene == scene) return player;
+                if (player.gameObject.scene == scene) return player;
             }
             return null;
         }
@@ -284,7 +280,7 @@ namespace TacticalEcho.AI.Debugging
             EnemyPerceptionDemoView[] views = Object.FindObjectsByType<EnemyPerceptionDemoView>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             foreach (EnemyPerceptionDemoView view in views)
             {
-                if (view != null && view.gameObject.scene == scene) return view;
+                if (view.gameObject.scene == scene) return view;
             }
             return null;
         }
@@ -399,13 +395,12 @@ namespace TacticalEcho.AI.Debugging
             gizmos.Configure(brain);
 
             GameObject visualClone = AddKaiaVisual(enemy.transform);
-            Animator animator = visualClone != null ? visualClone.GetComponentInChildren<Animator>(true) : null;
-            EnemyAnimationController animationController = enemy.AddComponent<EnemyAnimationController>();
+            Animator animator = visualClone.GetComponentInChildren<Animator>(true);
+            EnemyAnimationController animationController = enemy.GetComponent<EnemyAnimationController>();
             animationController.Configure(animator);
             movement.ConfigureAnimation(animationController);
 
-            WeaponController weapon = visualClone != null ? visualClone.GetComponentInChildren<WeaponController>(true) : null;
-            if (weapon == null) weapon = CreateFallbackWeapon(enemy.transform);
+            WeaponController weapon = visualClone.GetComponentInChildren<WeaponController>(true);
 
             TacticalEvaluator tacticalEvaluator = enemy.AddComponent<TacticalEvaluator>();
             CoverEvaluator coverEvaluator = enemy.AddComponent<CoverEvaluator>();
@@ -419,41 +414,10 @@ namespace TacticalEcho.AI.Debugging
             return enemy;
         }
 
-        private static WeaponController CreateFallbackWeapon(Transform enemyRoot)
-        {
-            WeaponDefinition definition = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(RifleDefinitionPath);
-            if (definition == null)
-            {
-                Debug.LogWarning($"[AI Perception Demo] Rifle definition was not found at {RifleDefinitionPath}.");
-                return null;
-            }
-
-            GameObject weaponObject = new("AI_Rifle");
-            weaponObject.transform.SetParent(enemyRoot, false);
-            GameObject muzzleObject = new("Muzzle");
-            muzzleObject.transform.SetParent(weaponObject.transform, false);
-            muzzleObject.transform.localPosition = new Vector3(0f, 1.35f, 0.35f);
-
-            WeaponController weapon = weaponObject.AddComponent<WeaponController>();
-            weapon.Configure(definition, muzzleObject.transform);
-            return weapon;
-        }
-
         private static GameObject AddKaiaVisual(Transform enemyRoot)
         {
             GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
-            if (playerPrefab == null)
-            {
-                Debug.LogWarning($"[AI Perception Demo] Player prefab not found at {PlayerPrefabPath}. Enemy prefab will use a fallback body collider without a character visual.");
-                return null;
-            }
-
             Transform sourceVisual = playerPrefab.transform.Find("Visual");
-            if (sourceVisual == null)
-            {
-                Debug.LogWarning("[AI Perception Demo] Player_Kaia prefab has no Visual child. Enemy prefab will use a fallback body collider without a character visual.");
-                return null;
-            }
 
             GameObject visualClone = Object.Instantiate(sourceVisual.gameObject);
             visualClone.name = "Visual_Kaia_Enemy";
@@ -466,17 +430,7 @@ namespace TacticalEcho.AI.Debugging
 
         private static void CreateMeshAlignedHitZones(GameObject visualClone, GameObject enemyRoot)
         {
-            Animator animator = visualClone != null ? visualClone.GetComponentInChildren<Animator>(true) : null;
-            if (animator == null || !animator.isHuman)
-            {
-                CapsuleCollider fallback = enemyRoot.AddComponent<CapsuleCollider>();
-                fallback.height = 1.7f;
-                fallback.radius = 0.31f;
-                fallback.center = new Vector3(0f, 0.85f, 0f);
-                DamageHitZone zone = enemyRoot.AddComponent<DamageHitZone>();
-                zone.Configure(DamageHitZoneType.Torso, 1f);
-                return;
-            }
+            Animator animator = visualClone.GetComponentInChildren<Animator>(true);
 
             CreateSphereZone(animator.GetBoneTransform(HumanBodyBones.Head), "HitZone_Head", DamageHitZoneType.Head, 2f, 0.13f);
             CreateCapsuleZone(animator.GetBoneTransform(HumanBodyBones.Chest), animator.GetBoneTransform(HumanBodyBones.Hips), "HitZone_Torso", DamageHitZoneType.Torso, 1f, 0.22f);
@@ -492,7 +446,6 @@ namespace TacticalEcho.AI.Debugging
 
         private static void CreateSphereZone(Transform bone, string name, DamageHitZoneType zoneType, float multiplier, float radius)
         {
-            if (bone == null) return;
             GameObject zoneObject = new(name);
             zoneObject.transform.SetParent(bone, false);
             SphereCollider collider = zoneObject.AddComponent<SphereCollider>();
@@ -503,7 +456,6 @@ namespace TacticalEcho.AI.Debugging
 
         private static void CreateCapsuleZone(Transform fromBone, Transform toBone, string name, DamageHitZoneType zoneType, float multiplier, float radius)
         {
-            if (fromBone == null || toBone == null) return;
             Vector3 endLocal = fromBone.InverseTransformPoint(toBone.position);
             float distance = endLocal.magnitude;
             if (distance <= 0.001f) return;
@@ -557,11 +509,6 @@ namespace TacticalEcho.AI.Debugging
         {
             if (FindSceneEnemy(scene) != null) return false;
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath);
-            if (prefab == null)
-            {
-                Debug.LogError($"[AI Perception Demo] Enemy prefab is missing at {EnemyPrefabPath}.");
-                return false;
-            }
 
             GameObject parent = FindRootObject(scene, EnemyParentName);
             if (parent == null)

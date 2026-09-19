@@ -53,7 +53,7 @@ namespace TacticalEcho.AI.Perception
         private void Scan()
         {
             HasLineOfSight = false;
-            if (eyeOrigin == null || target == null)
+            if (target == null)
             {
                 return;
             }

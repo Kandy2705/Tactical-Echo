@@ -15,22 +15,9 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         public bool IsDead => isDead;
 
-        private void Awake()
-        {
-            ResolveAnimator();
-        }
-
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            ResolveAnimator();
-        }
-#endif
-
         public void Configure(Animator newAnimator)
         {
             animator = newAnimator;
-            ResolveAnimator();
         }
 
         public void SetLocomotion(float speed)
@@ -40,8 +27,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
                 return;
             }
 
-            ResolveAnimator();
-            animator?.SetFloat(SpeedHash, Mathf.Clamp01(speed));
+            animator.SetFloat(SpeedHash, Mathf.Clamp01(speed));
         }
 
         public void SetAim(bool isAiming)
@@ -51,8 +37,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
                 return;
             }
 
-            ResolveAnimator();
-            animator?.SetBool(AimHash, isAiming);
+            animator.SetBool(AimHash, isAiming);
         }
 
         public void PlayFire()
@@ -62,8 +47,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
                 return;
             }
 
-            ResolveAnimator();
-            animator?.SetTrigger(FireHash);
+            animator.SetTrigger(FireHash);
         }
 
         public void PlayReload()
@@ -73,23 +57,13 @@ namespace TacticalEcho.AnimationSystem.Runtime
                 return;
             }
 
-            ResolveAnimator();
-            animator?.SetTrigger(ReloadHash);
+            animator.SetTrigger(ReloadHash);
         }
 
         public void PlayDeath()
         {
             if (isDead)
             {
-                return;
-            }
-
-            ResolveAnimator();
-            if (animator == null)
-            {
-                Debug.LogWarning(
-                    "[Enemy Animation] Cannot play death animation because no Animator is assigned.",
-                    this);
                 return;
             }
 
@@ -124,16 +98,8 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
             isDead = false;
 
-            ResolveAnimator();
             DeathAnimationPlayer.Stop(animator);
         }
 
-        private void ResolveAnimator()
-        {
-            if (animator == null)
-            {
-                animator = GetComponentInChildren<Animator>(true);
-            }
-        }
     }
 }

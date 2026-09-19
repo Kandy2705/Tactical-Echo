@@ -15,11 +15,6 @@ namespace TacticalEcho.AI.States
 
         public override void Tick(float deltaTime)
         {
-            if (Brain.Movement == null)
-            {
-                return;
-            }
-
             if (Brain.Movement.HasReachedDestination)
             {
                 Brain.Movement.Stop();
@@ -29,17 +24,17 @@ namespace TacticalEcho.AI.States
 
         public override void Exit()
         {
-            Brain.Movement?.Stop();
+            Brain.Movement.Stop();
         }
 
         private void MoveToLastHeardPosition()
         {
-            if (Brain.Memory == null || !Brain.Memory.HasHeardPosition)
+            if (!Brain.Memory.HasHeardPosition)
             {
                 return;
             }
 
-            Brain.Movement?.SetDestination(
+            Brain.Movement.SetDestination(
                 Brain.Memory.LastHeardPosition,
                 InvestigateStoppingDistance);
         }

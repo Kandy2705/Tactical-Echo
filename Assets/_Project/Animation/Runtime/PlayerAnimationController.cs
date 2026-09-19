@@ -41,7 +41,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         public void SetLocomotion(Vector2 moveInput, float normalizedSpeed, bool isSprinting, bool isAiming)
         {
-            if (isDead || !HasPlayableAnimator())
+            if (isDead)
             {
                 return;
             }
@@ -57,7 +57,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         public void PlayFire()
         {
-            if (isDead || !HasPlayableAnimator())
+            if (isDead)
             {
                 return;
             }
@@ -68,7 +68,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         public void PlayReload()
         {
-            if (isDead || !HasPlayableAnimator())
+            if (isDead)
             {
                 return;
             }
@@ -79,7 +79,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         public void PlayDeath()
         {
-            if (isDead || !HasPlayableAnimator())
+            if (isDead)
             {
                 return;
             }
@@ -104,7 +104,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         private void UpdateUpperBodyLayer(bool isAiming)
         {
-            if (upperBodyLayerIndex < 0 || !HasPlayableAnimator())
+            if (upperBodyLayerIndex < 0)
             {
                 return;
             }
@@ -117,29 +117,11 @@ namespace TacticalEcho.AnimationSystem.Runtime
 
         private void ResolveAnimator()
         {
-            animator = visual != null ? visual.Animator : null;
-
-            if (animator == null)
-            {
-                animator = GetComponentInChildren<Animator>(true);
-            }
-
-            if (!HasPlayableAnimator())
-            {
-                upperBodyLayerIndex = -1;
-                upperBodyLayerWeight = 0f;
-                return;
-            }
-
+            animator = visual.Animator;
             upperBodyLayerIndex = animator.GetLayerIndex(UpperBodyLayerName);
             upperBodyLayerWeight = upperBodyLayerIndex >= 0
                 ? animator.GetLayerWeight(upperBodyLayerIndex)
                 : 0f;
-        }
-
-        private bool HasPlayableAnimator()
-        {
-            return animator != null && animator.runtimeAnimatorController != null;
         }
     }
 }

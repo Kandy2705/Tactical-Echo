@@ -48,7 +48,7 @@ namespace TacticalEcho.AI.Patrol
         public bool TryGetWaypoint(int index, out Vector3 position)
         {
             IReadOnlyList<Transform> points = ResolvedWaypoints;
-            if (index < 0 || index >= points.Count || points[index] == null)
+            if (index < 0 || index >= points.Count)
             {
                 position = default;
                 return false;
@@ -84,11 +84,6 @@ namespace TacticalEcho.AI.Patrol
 
             for (int i = 0; i < points.Count; i++)
             {
-                if (points[i] == null)
-                {
-                    continue;
-                }
-
                 float sqr = (points[i].position - position).sqrMagnitude;
                 if (sqr < nearestSqr)
                 {
@@ -108,15 +103,10 @@ namespace TacticalEcho.AI.Patrol
 
             for (int i = 0; i < points.Count; i++)
             {
-                if (points[i] == null)
-                {
-                    continue;
-                }
-
                 Gizmos.DrawWireSphere(points[i].position, 0.35f);
 
                 int next = NextIndex(i);
-                if (next >= 0 && next < points.Count && points[next] != null && (loop || next > i))
+                if (next >= 0 && next < points.Count && (loop || next > i))
                 {
                     Gizmos.DrawLine(points[i].position, points[next].position);
                 }

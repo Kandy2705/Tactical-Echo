@@ -37,7 +37,7 @@ namespace TacticalEcho.AI.States
             pointIndex = 0;
             pointCount = 0;
 
-            hasSearchPosition = Brain.Memory != null && Brain.Memory.HasKnownPosition;
+            hasSearchPosition = Brain.Memory.HasKnownPosition;
             if (!hasSearchPosition)
             {
                 // Nothing remembered to search around. Give up immediately instead of idling
@@ -64,11 +64,6 @@ namespace TacticalEcho.AI.States
             if (elapsedTime >= SearchTimeoutDuration)
             {
                 Brain.ChangeState(EnemyStateId.Patrol);
-                return;
-            }
-
-            if (Brain.Movement == null)
-            {
                 return;
             }
 
@@ -108,7 +103,7 @@ namespace TacticalEcho.AI.States
             elapsedTime = 0f;
             pointCount = 0;
             pointIndex = 0;
-            Brain.Movement?.Stop();
+            Brain.Movement.Stop();
         }
 
         /// <summary>
@@ -139,8 +134,7 @@ namespace TacticalEcho.AI.States
         {
             while (pointIndex < pointCount)
             {
-                if (Brain.Movement == null
-                    || Brain.Movement.SetDestination(sweepPoints[pointIndex], SearchStoppingDistance))
+                if (Brain.Movement.SetDestination(sweepPoints[pointIndex], SearchStoppingDistance))
                 {
                     return;
                 }

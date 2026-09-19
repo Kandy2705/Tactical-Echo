@@ -14,18 +14,7 @@ namespace TacticalEcho.AI.Cover
         public void SetCoverPoints(IEnumerable<CoverPoint> points)
         {
             coverPoints.Clear();
-            if (points == null)
-            {
-                return;
-            }
-
-            foreach (CoverPoint point in points)
-            {
-                if (point != null)
-                {
-                    coverPoints.Add(point);
-                }
-            }
+            coverPoints.AddRange(points);
         }
 
         public bool TryFindBestCover(Vector3 agentPosition, Vector3 threatPosition, out CoverPoint bestCover)
@@ -35,7 +24,7 @@ namespace TacticalEcho.AI.Cover
 
             foreach (CoverPoint point in coverPoints)
             {
-                if (point == null || Vector3.Distance(agentPosition, point.Position) > searchRadius)
+                if (Vector3.Distance(agentPosition, point.Position) > searchRadius)
                 {
                     continue;
                 }

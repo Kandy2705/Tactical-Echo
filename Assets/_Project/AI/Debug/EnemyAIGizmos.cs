@@ -27,34 +27,18 @@ namespace TacticalEcho.AI.Debugging
 
         private void Reset()
         {
-            if (brain == null)
-            {
-                brain = GetComponent<EnemyBrain>();
-            }
+            brain = GetComponent<EnemyBrain>();
         }
 
         private void OnValidate()
         {
-            if (brain == null)
-            {
-                brain = GetComponent<EnemyBrain>();
-            }
+            brain = GetComponent<EnemyBrain>();
         }
 
         private void OnDrawGizmosSelected()
         {
             DrawFacingDirection();
             DrawNavigationFootprint();
-
-            if (brain == null)
-            {
-                brain = GetComponent<EnemyBrain>();
-            }
-
-            if (brain == null)
-            {
-                return;
-            }
 
             DrawVision();
             DrawHearing();
@@ -86,10 +70,6 @@ namespace TacticalEcho.AI.Debugging
         private void DrawNavigationFootprint()
         {
             NavMeshAgent agent = GetComponent<NavMeshAgent>();
-            if (agent == null)
-            {
-                return;
-            }
 
             Gizmos.color = navigationColor;
             Vector3 center = transform.position + Vector3.up * 0.03f;
@@ -98,12 +78,7 @@ namespace TacticalEcho.AI.Debugging
 
         private void DrawVision()
         {
-            if (brain.Vision == null)
-            {
-                return;
-            }
-
-            Transform origin = brain.Vision.EyeOrigin != null ? brain.Vision.EyeOrigin : brain.transform;
+            Transform origin = brain.Vision.EyeOrigin;
             float range = brain.Vision.Range;
             float halfFov = brain.Vision.FieldOfView * 0.5f;
 
@@ -149,7 +124,7 @@ namespace TacticalEcho.AI.Debugging
 
         private void DrawHearing()
         {
-            if (brain.Hearing == null || !brain.Hearing.HasLastAudibleNoise)
+            if (!brain.Hearing.HasLastAudibleNoise)
             {
                 return;
             }
@@ -172,7 +147,7 @@ namespace TacticalEcho.AI.Debugging
 
         private void DrawMemory()
         {
-            if (brain.Memory == null || !brain.Memory.HasKnownPosition)
+            if (!brain.Memory.HasKnownPosition)
             {
                 return;
             }

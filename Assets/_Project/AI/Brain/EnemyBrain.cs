@@ -17,6 +17,7 @@ using UnityEngine;
 
 namespace TacticalEcho.AI.Brain
 {
+    [RequireComponent(typeof(StatusEffectController))]
     public sealed class EnemyBrain : MonoBehaviour
     {
         private const float PreferredCombatRange = 12f;
@@ -40,11 +41,8 @@ namespace TacticalEcho.AI.Brain
         [SerializeField] private TacticalEvaluator tacticalEvaluator;
         [SerializeField] private CoverEvaluator coverEvaluator;
 
-        [Header("Status Effects")]
-        [Tooltip("Optional. Read to turn an active Suppression effect into TacticalContext.Suppression. Falls back to a StatusEffectController on this GameObject if left unassigned.")]
-        [SerializeField] private StatusEffectController statusEffects;
-
         private readonly StateMachine<EnemyStateId> stateMachine = new();
+        private StatusEffectController statusEffects;
         private Health subscribedHealth;
         private bool isDead;
         private TickScheduler scheduler;
@@ -66,10 +64,7 @@ namespace TacticalEcho.AI.Brain
 
         private void Awake()
         {
-            if (statusEffects == null)
-            {
-                statusEffects = GetComponent<StatusEffectController>();
-            }
+            statusEffects = GetComponent<StatusEffectController>();
 
             stateMachine.Register(EnemyStateId.Patrol, new PatrolState(this));
             stateMachine.Register(EnemyStateId.Investigate, new InvestigateState(this));
@@ -146,10 +141,10 @@ namespace TacticalEcho.AI.Brain
 
         private void TickPerception(float deltaTime)
         {
-            vision?.TickSensor(deltaTime);
-            hearing?.TickSensor(deltaTime);
+            vision.TickSensor(deltaTime);
+            hearing.TickSensor(deltaTime);
 
-            bool canSeeTarget = vision != null && vision.HasLineOfSight && vision.VisibleTarget != null;
+            bool canSeeTarget = vision.HasLineOfSight && vision.VisibleTarget != null;
 
             // Seeing a body is not contact. Without this the AI stays in Combat on a corpse
             // and keeps firing at it forever.
@@ -162,16 +157,16 @@ namespace TacticalEcho.AI.Brain
 
             if (canSeeTarget)
             {
-                memory?.RememberSeen(vision.VisibleTarget.position);
+                memory.RememberSeen(vision.VisibleTarget.position);
             }
 
-            if (hearing != null && hearing.TryConsumeNoise(out NoiseEventData noise))
+            if (hearing.TryConsumeNoise(out NoiseEventData noise))
             {
-                memory?.RememberHeard(noise.Position, noise.Intensity);
+                memory.RememberHeard(noise.Position, noise.Intensity);
                 heardNoise = true;
             }
 
-            memory?.TickMemory();
+            memory.TickMemory();
             UpdatePerceptionDrivenState(canSeeTarget, heardNoise);
         }
 
@@ -199,7 +194,7 @@ namespace TacticalEcho.AI.Brain
 
         private bool IsAiActive()
         {
-            if (isDead || (health != null && !health.IsAlive))
+            if (isDead || !health.IsAlive)
             {
                 HandleDied();
                 return false;
@@ -227,14 +222,14 @@ namespace TacticalEcho.AI.Brain
             weapon = newWeapon;
             health = newHealth;
             animationController = newAnimationController;
-            isDead = health != null && !health.IsAlive;
+            isDead = !health.IsAlive;
 
             if (!isDead)
             {
                 // Configuration can run after a transient death was latched during scene
                 // startup. The brain clears its own flag here, so the animation layer has to
                 // be released in the same step or the two disagree permanently.
-                animationController?.ClearDeath();
+                animationController.ClearDeath();
             }
 
             if (isActiveAndEnabled)
@@ -267,7 +262,7 @@ namespace TacticalEcho.AI.Brain
         /// </summary>
         private float ResolveSuppression()
         {
-            if (statusEffects == null || !statusEffects.HasEffect(SuppressionEffectId, out StatusEffectInstance suppression))
+            if (!statusEffects.HasEffect(SuppressionEffectId, out StatusEffectInstance suppression))
             {
                 return 0f;
             }
@@ -289,7 +284,7 @@ namespace TacticalEcho.AI.Brain
             float threatOverride,
             bool coverOverride)
         {
-            bool hasTargetPosition = memory != null && memory.HasKnownPosition;
+            bool hasTargetPosition = memory.HasKnownPosition;
             Vector3 targetPosition = hasTargetPosition ? memory.LastKnownPosition : default;
             float targetDistance = hasTargetPosition
                 ? Vector3.Distance(transform.position, targetPosition)
@@ -309,7 +304,7 @@ namespace TacticalEcho.AI.Brain
                     Mathf.Max(0f, signedRangeError) / PreferredCombatRange);
             }
 
-            WeaponRuntime runtime = weapon != null ? weapon.Runtime : null;
+            WeaponRuntime runtime = weapon.Runtime;
             bool isReloading = runtime != null && runtime.IsReloading;
             bool canFire = runtime != null && runtime.CanFire(Time.time);
             bool canReload = runtime != null
@@ -320,7 +315,6 @@ namespace TacticalEcho.AI.Brain
             bool coverAvailable = false;
             Vector3 coverPosition = default;
             if (hasTargetPosition
-                && coverEvaluator != null
                 && coverEvaluator.TryFindBestCover(transform.position, targetPosition, out CoverPoint bestCover))
             {
                 coverAvailable = true;
@@ -331,11 +325,9 @@ namespace TacticalEcho.AI.Brain
 
             float threat = threatOverride >= 0f
                 ? threatOverride
-                : vision != null && vision.HasLineOfSight
+                : vision.HasLineOfSight
                     ? 1f
-                    : memory != null
-                        ? memory.Confidence
-                        : 0f;
+                    : memory.Confidence;
 
             return new TacticalContext
             {
@@ -345,15 +337,15 @@ namespace TacticalEcho.AI.Brain
                 PreferredRangeScore = preferredRangeScore,
                 TooCloseScore = tooCloseScore,
                 TooFarScore = tooFarScore,
-                HealthRatio = health != null ? health.Normalized : 1f,
-                TargetIsAlive = vision != null && IsTargetAlive(vision.VisibleTarget),
+                HealthRatio = health.Normalized,
+                TargetIsAlive = IsTargetAlive(vision.VisibleTarget),
                 AmmoRatio = runtime != null ? runtime.AmmoRatio : 0f,
                 Threat = Mathf.Clamp01(threat),
                 Suppression = Mathf.Clamp01(suppression),
                 HasTargetPosition = hasTargetPosition,
-                HasLineOfSight = vision != null && vision.HasLineOfSight && vision.VisibleTarget != null,
+                HasLineOfSight = vision.HasLineOfSight && vision.VisibleTarget != null,
                 CoverAvailable = coverAvailable,
-                PathAvailable = movement != null && movement.IsOnNavMesh,
+                PathAvailable = movement.IsOnNavMesh,
                 CanFire = canFire,
                 CanReload = canReload,
                 IsReloading = isReloading
@@ -362,7 +354,7 @@ namespace TacticalEcho.AI.Brain
 
         private void BindHealthEvents()
         {
-            if (health == null || subscribedHealth == health)
+            if (subscribedHealth == health)
             {
                 return;
             }
@@ -401,7 +393,7 @@ namespace TacticalEcho.AI.Brain
 
         private void UpdatePerceptionDrivenState(bool canSeeTarget, bool heardNoise)
         {
-            if (health != null && !health.IsAlive)
+            if (!health.IsAlive)
             {
                 HandleDied();
                 return;
@@ -426,7 +418,7 @@ namespace TacticalEcho.AI.Brain
                 return;
             }
 
-            if (memory != null && memory.HasKnownPosition)
+            if (memory.HasKnownPosition)
             {
                 // Losing LOS from Combat switches to Search immediately. Investigate and
                 // Search keep working from remembered positions until their own state logic

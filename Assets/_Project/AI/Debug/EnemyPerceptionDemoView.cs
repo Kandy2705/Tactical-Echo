@@ -42,14 +42,13 @@ namespace TacticalEcho.AI.Debugging
 
         private void Update()
         {
-            if (!Application.isPlaying || brain == null) return;
+            if (!Application.isPlaying) return;
             FaceStatusTowardCamera();
             RefreshStatus(force: false);
         }
 
         private void FaceStatusTowardCamera()
         {
-            if (labelRoot == null) return;
             if (mainCamera == null) mainCamera = Camera.main;
             if (mainCamera == null) return;
 
@@ -59,21 +58,16 @@ namespace TacticalEcho.AI.Debugging
 
         private void ShowEditModeStatus()
         {
-            if (statusText == null) return;
-            float maxHealth = health != null ? health.Max : 100f;
+            float maxHealth = health.Max;
             statusText.text = $"AI TEST\nEDIT MODE\nTACTICAL CHECK ON PLAY\nHP -- / {maxHealth:0}";
             statusText.color = Color.white;
         }
 
         private void RefreshStatus(bool force)
         {
-            if (statusText == null || brain == null) return;
-
-            int currentHealth = health != null ? Mathf.CeilToInt(health.Current) : 0;
-            bool navigationReady = brain.Movement != null && brain.Movement.IsOnNavMesh;
-            TacticalActionId currentAction = brain.TacticalEvaluator != null
-                ? brain.TacticalEvaluator.LastDecision
-                : TacticalActionId.None;
+            int currentHealth = Mathf.CeilToInt(health.Current);
+            bool navigationReady = brain.Movement.IsOnNavMesh;
+            TacticalActionId currentAction = brain.TacticalEvaluator.LastDecision;
 
             if (!force
                 && previousState == brain.CurrentState
@@ -121,10 +115,10 @@ namespace TacticalEcho.AI.Debugging
                     break;
             }
 
-            string actionLine = brain.CurrentState == EnemyStateId.Combat && brain.TacticalEvaluator != null
+            string actionLine = brain.CurrentState == EnemyStateId.Combat
                 ? $"ACTION {currentAction.ToString().ToUpperInvariant()}"
                 : "ACTION --";
-            string healthLine = health != null ? $"HP {health.Current:0} / {health.Max:0}" : string.Empty;
+            string healthLine = $"HP {health.Current:0} / {health.Max:0}";
             string navigationLine = navigationReady ? "NAV READY" : "NAV NOT READY";
 
             statusText.text = $"AI TEST\n{stateDescription}\n{actionLine}\n{navigationLine}\n{healthLine}";
