@@ -27,6 +27,9 @@ namespace TacticalEcho.CameraSystem.Obstruction
         [Tooltip("Shrinks the raycast distance so geometry right at the target (e.g. its own body) is never treated as an obstruction.")]
         [SerializeField, Min(0f)] private float targetSkinWidth = 0.35f;
 
+        [Tooltip("Fade renderers that block the view. Turn off to isolate the fade from the collision push when profiling.")]
+        [SerializeField] private bool enableRendererFade = true;
+
         [Header("Collision")]
         [Tooltip("Pull the camera in front of geometry between it and the pivot, instead of letting it clip through walls.")]
         [SerializeField] private bool pushCameraOutOfGeometry = true;
@@ -40,6 +43,9 @@ namespace TacticalEcho.CameraSystem.Obstruction
         private readonly HashSet<Renderer> obstructingThisFrame = new();
         private readonly List<Renderer> expiredRenderers = new();
         private readonly List<Renderer> trackedRenderers = new();
+        // Collider -> Renderer is stable for the lifetime of the scene geometry, so the
+        // hierarchy walk is paid once per collider instead of once per hit per frame.
+        private readonly Dictionary<Collider, Renderer> rendererByCollider = new();
         private MaterialPropertyBlock propertyBlock;
 
         private void Awake()
@@ -140,6 +146,16 @@ namespace TacticalEcho.CameraSystem.Obstruction
         {
             obstructingThisFrame.Clear();
 
+            if (!enableRendererFade)
+            {
+                if (fadeState.Count > 0)
+                {
+                    ClearAllFades();
+                }
+
+                return;
+            }
+
             if (target != null)
             {
                 ScanObstructions();
@@ -168,7 +184,7 @@ namespace TacticalEcho.CameraSystem.Obstruction
 
             for (int i = 0; i < hitCount; i++)
             {
-                Renderer hitRenderer = hits[i].collider.GetComponentInParent<Renderer>();
+                Renderer hitRenderer = ResolveRenderer(hits[i].collider);
                 if (hitRenderer == null)
                 {
                     continue;
@@ -225,6 +241,50 @@ namespace TacticalEcho.CameraSystem.Obstruction
             {
                 fadeState.Remove(expired);
             }
+        }
+
+        private Renderer ResolveRenderer(Collider hitCollider)
+        {
+            if (hitCollider == null)
+            {
+                return null;
+            }
+
+            if (rendererByCollider.TryGetValue(hitCollider, out Renderer cached))
+            {
+                return cached;
+            }
+
+            Renderer resolved = hitCollider.GetComponentInParent<Renderer>();
+            rendererByCollider[hitCollider] = resolved;
+            return resolved;
+        }
+
+        /// <summary>
+        /// Drops every fade override. A MaterialPropertyBlock makes a renderer
+        /// SRP-Batcher incompatible, so leaving one behind costs draw calls for the rest of
+        /// the session.
+        /// </summary>
+        private void ClearAllFades()
+        {
+            trackedRenderers.Clear();
+            trackedRenderers.AddRange(fadeState.Keys);
+
+            foreach (Renderer targetRenderer in trackedRenderers)
+            {
+                if (targetRenderer != null)
+                {
+                    targetRenderer.SetPropertyBlock(null);
+                }
+            }
+
+            fadeState.Clear();
+            trackedRenderers.Clear();
+        }
+
+        private void OnDisable()
+        {
+            ClearAllFades();
         }
 
         private void ApplyAlpha(Renderer targetRenderer, float alpha)

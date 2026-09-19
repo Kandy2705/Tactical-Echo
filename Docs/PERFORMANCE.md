@@ -109,6 +109,38 @@ Window > Rendering > Occlusion Culling > Bake. Measure before and after with the
 in an outdoor seaside scene the win is usually small, so it belongs in the Profiler tables
 rather than being assumed.
 
+## Isolating a hitch when the camera turns
+
+A stutter that appears the moment new geometry comes into view has several possible causes
+that look identical on screen. Isolate before changing anything - each step is one toggle and
+one play session on the same route.
+
+1. **Is it first-sight only?** Turn to a new area, then turn away and back several times. A
+   hitch that happens once per area and never again in the same session is shader variant or
+   pipeline-state compilation on first draw, not culling. Occlusion culling does not create
+   that cost, it defers it: before the bake, geometry behind walls was still submitted and
+   compiled early; after it, the compile happens at the moment of reveal. Confirm with a
+   Development Build - Editor shader compilation is far worse than a build, and this class of
+   hitch usually shrinks or disappears there. The real fix is a `ShaderVariantCollection`
+   recorded while playing the route and added to Project Settings > Graphics > Preloaded
+   Shaders.
+2. **Is it occlusion culling itself?** Main Camera > uncheck **Occlusion Culling** and replay
+   the route. If the hitch is unchanged, culling is not the cause.
+3. **Is it the obstruction fade?** `CameraObstructionHandler` > uncheck **Enable Renderer
+   Fade**. The fade assigns a `MaterialPropertyBlock`, which makes that renderer
+   SRP-Batcher incompatible while it is faded, so a large environment mesh entering and
+   leaving the fade set costs draw-call churn. The collision push stays active with the fade
+   off, so this isolates the two halves of the component.
+4. **Is it the camera collision push?** `CameraObstructionHandler` > uncheck **Push Camera Out
+   Of Geometry**. One sphere cast per frame should not be measurable; if it is, the mask is
+   catching far more colliders than intended.
+
+Only after one of these changes the measurement does it belong in the tables below.
+
+Note on the bake: Unity writes the new `m_OcclusionCullingData` reference and the scene GUID
+into the scene file when the **scene is saved**. Baking without saving leaves the scene on disk
+pointing at whatever it referenced before.
+
 ## Known cost centres to measure first
 
 Ordered by expected cost, to be confirmed or rejected by the capture rather than assumed:
