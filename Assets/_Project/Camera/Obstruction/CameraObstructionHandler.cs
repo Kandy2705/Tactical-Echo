@@ -27,14 +27,114 @@ namespace TacticalEcho.CameraSystem.Obstruction
         [Tooltip("Shrinks the raycast distance so geometry right at the target (e.g. its own body) is never treated as an obstruction.")]
         [SerializeField, Min(0f)] private float targetSkinWidth = 0.35f;
 
+        [Header("Collision")]
+        [Tooltip("Pull the camera in front of geometry between it and the pivot, instead of letting it clip through walls.")]
+        [SerializeField] private bool pushCameraOutOfGeometry = true;
+        [SerializeField, Min(0.01f)] private float collisionRadius = 0.22f;
+        [Tooltip("Extra gap kept between the camera and the surface it stopped against.")]
+        [SerializeField, Min(0f)] private float collisionSkin = 0.08f;
+
         private readonly RaycastHit[] hits = new RaycastHit[16];
+        private readonly RaycastHit[] collisionHits = new RaycastHit[16];
         private readonly Dictionary<Renderer, float> fadeState = new();
         private readonly HashSet<Renderer> obstructingThisFrame = new();
         private readonly List<Renderer> expiredRenderers = new();
         private readonly List<Renderer> trackedRenderers = new();
         private MaterialPropertyBlock propertyBlock;
 
+        private void Awake()
+        {
+            // An unconfigured LayerMask serialises as 0, which would silently disable both the
+            // fade and the collision push. Fall back to "solid world geometry": everything
+            // except the layers that must never block or fade for a camera.
+            if (obstructionMask.value == 0)
+            {
+                int mask = ~0;
+                ExcludeLayer(ref mask, "Ignore Raycast");
+                ExcludeLayer(ref mask, "Water");
+                ExcludeLayer(ref mask, "UI");
+                ExcludeLayer(ref mask, TacticalEcho.Combat.Damage.DamageHitZone.HitZoneLayerName);
+                obstructionMask = mask;
+            }
+        }
+
+        private static void ExcludeLayer(ref int mask, string layerName)
+        {
+            int layer = LayerMask.NameToLayer(layerName);
+            if (layer >= 0)
+            {
+                mask &= ~(1 << layer);
+            }
+        }
+
+
         public float FadedAlpha => fadedAlpha;
+
+        public void Configure(Transform newTarget)
+        {
+            target = newTarget;
+        }
+
+        /// <summary>
+        /// Returns where the camera may actually sit: the desired position, or a point in front
+        /// of the first geometry between the pivot and it. The camera controller owns the
+        /// position and calls this; this type owns what counts as an obstruction.
+        /// Colliders belonging to the pivot's own hierarchy are ignored, so the character the
+        /// camera is following never pushes it.
+        /// </summary>
+        public Vector3 ResolveCameraPosition(Transform pivot, Vector3 desiredPosition)
+        {
+            if (!pushCameraOutOfGeometry || pivot == null)
+            {
+                return desiredPosition;
+            }
+
+            Vector3 pivotPosition = pivot.position;
+            Vector3 offset = desiredPosition - pivotPosition;
+            float distance = offset.magnitude;
+            if (distance <= Mathf.Epsilon)
+            {
+                return desiredPosition;
+            }
+
+            Vector3 direction = offset / distance;
+            int hitCount = Physics.SphereCastNonAlloc(
+                pivotPosition,
+                collisionRadius,
+                direction,
+                collisionHits,
+                distance,
+                obstructionMask,
+                QueryTriggerInteraction.Ignore);
+
+            Transform pivotRoot = pivot.root;
+            float nearest = float.PositiveInfinity;
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                Collider collider = collisionHits[i].collider;
+                if (collider == null || collider.transform.IsChildOf(pivotRoot))
+                {
+                    continue;
+                }
+
+                // A zero distance means the cast started already overlapping; that surface
+                // cannot tell us where to stop, so it is skipped rather than collapsing the
+                // camera onto the pivot.
+                float hitDistance = collisionHits[i].distance;
+                if (hitDistance > 0f && hitDistance < nearest)
+                {
+                    nearest = hitDistance;
+                }
+            }
+
+            if (float.IsPositiveInfinity(nearest))
+            {
+                return desiredPosition;
+            }
+
+            return pivotPosition + direction * Mathf.Max(0f, nearest - collisionSkin);
+        }
 
         private void LateUpdate()
         {

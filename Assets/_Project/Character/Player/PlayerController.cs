@@ -2,6 +2,7 @@ using TacticalEcho.AnimationSystem.Runtime;
 using TacticalEcho.CameraSystem;
 using TacticalEcho.Combat.Damage;
 using TacticalEcho.Combat.Health;
+using TacticalEcho.Combat.StatusEffects;
 using TacticalEcho.Combat.Weapons;
 using TacticalEcho.Inventory.Equipment;
 using TacticalEcho.UI;
@@ -22,6 +23,7 @@ namespace TacticalEcho.Character.Player
         [SerializeField] private PlayerAnimationController animationController;
         [SerializeField] private Health health;
         [SerializeField] private EquipmentController equipment;
+        [SerializeField] private StatusEffectController statusEffects;
 
         [Header("Movement")]
         [SerializeField, Min(0f)] private float walkSpeed = 4.5f;
@@ -60,6 +62,7 @@ namespace TacticalEcho.Character.Player
             }
 
             equipment = equipment != null ? equipment : GetComponent<EquipmentController>();
+            statusEffects = statusEffects != null ? statusEffects : GetComponent<StatusEffectController>();
 
             combatHud = GetComponent<PlayerCombatHud>();
             if (combatHud == null)
@@ -231,7 +234,10 @@ namespace TacticalEcho.Character.Player
                 desiredDirection.Normalize();
             }
 
-            float speed = IsSprinting ? sprintSpeed : walkSpeed;
+            // Status effects modify movement through their combined multiplier; nothing in
+            // the effect pipeline writes to movement directly.
+            float speed = (IsSprinting ? sprintSpeed : walkSpeed)
+                          * (statusEffects != null ? statusEffects.MoveSpeedMultiplier : 1f);
             PlanarVelocity = desiredDirection * speed;
 
             if (characterController.isGrounded && verticalVelocity < 0f)

@@ -27,7 +27,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | Player movement, character facing, player-level orchestration | `PlayerController.cs` | Delegate camera, weapon, animation, health and UI work to their owners. |
 | Player visual/Animator reference resolution | `PlayerVisualController.cs` | Do not put gameplay rules here. |
 | Explore/Aim camera, shoulder switch, recoil, crosshair, hit marker | `PlayerCameraController.cs` | Camera behavior and camera-facing feedback belong here. |
-| Camera obstruction/fade | `CameraObstructionHandler.cs` | Fades obstructing renderers via `MaterialPropertyBlock`; needs Transparent/Fade-surface materials on the obstructing geometry to be visible. |
+| Camera obstruction/fade/collision | `CameraObstructionHandler.cs` | Fades obstructing renderers via `MaterialPropertyBlock` (needs Transparent/Fade-surface materials to be visible) and resolves the camera-collision push for `PlayerCameraController`. |
 | Player Animator parameters | `PlayerAnimationController.cs` | Locomotion, aim, fire, reload, death requests. |
 | Enemy Animator parameters | `EnemyAnimationController.cs` | Add missing enemy animation commands here. `PlayDeath()`/`ClearDeath()` raise and release the death latch as a pair. |
 | Shared full-body death clip playback | `DeathAnimationPlayer.cs` | Specialized playback implementation behind animation controllers. `Play()` takes over the Animator's output entirely; `Stop()` gives it back. |
@@ -53,7 +53,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | Cover point data/evaluation | `CoverPoint.cs` + `CoverEvaluator.cs` | Do not mix cover search into Brain. |
 | AI state/score/memory debug | `EnemyAIGizmos.cs` / `AIDebugOverlay.cs` | Observation only. |
 | Sandbox perception demo enemy | `EnemyPerceptionDemoBootstrap.cs` | Owns sandbox-only edit-time authoring plus runtime binding; never production enemy setup. |
-| Status-effect config | `StatusEffectDefinition.cs` | Immutable effect data, including optional damage-over-time (`damagePerTick`/`tickInterval`). |
+| Status-effect config | `StatusEffectDefinition.cs` | Immutable effect data: damage-over-time (`damagePerTick`/`tickInterval`) and modifier channels (`moveSpeedMultiplier`). |
 | Status-effect runtime duration/stack | `StatusEffectInstance.cs` | Mutable instance state. |
 | Active status effects | `StatusEffectController.cs` | Apply, stack, expire, tick damage-over-time through the shared damage pipeline, and answer `HasEffect(effectId)` for consumers such as EnemyBrain. |
 | Item config | `ItemDefinition.cs` | Immutable item data, including the `WeaponDefinition` a weapon item equips. |
@@ -77,7 +77,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | --- | --- | --- | --- |
 | `AI/Brain/EnemyBrain.cs` | High-level AI coordination, sensor/memory consumption, state transitions, tactical context (including Suppression read from `StatusEffectController`), execution references, death transition | Connecting perception to state decisions; building context for tactical evaluation; coordinating existing execution components | Raw raycasts, NavMesh implementation, weapon mechanics, Animator parameters, UI/debug drawing, effect-specific logic (read `HasEffect` instead) |
 | `AI/Cover/CoverEvaluator.cs` | Cover candidate validation and scoring | Better cover scoring, travel/threat criteria, NavMesh-valid cover selection | State transitions or direct movement |
-| `AI/Cover/CoverPoint.cs` | Authored cover location and optional peek point | Extra metadata that belongs to a cover point | Global cover search/AI decisions |
+| `AI/Cover/CoverPoint.cs` | Authored cover location and optional peek point, plus `ConfigurePeekPoint` for spawners | Extra metadata that belongs to a cover point | Global cover search/AI decisions |
 | `AI/Debug/EnemyAIGizmos.cs` | Scene gizmos for perception and memory | More read-only visualization | Gameplay state or decisions |
 | `AI/Debug/EnemyPerceptionDemoBootstrap.cs` | Sandbox perception-demo prefab/scene authoring, runtime player binding, NavMesh fallback and demo status view | Temporary/debug setup for the perception showcase, including making the demo enemy visible before Play | Production enemy construction, production spawning or gameplay rules |
 | `AI/Memory/EnemyMemory.cs` | Last seen/heard positions, times and confidence decay | Memory confidence, remembered target information, forgetting rules | Direct sensing or movement |
@@ -114,7 +114,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | File | Owns | Extend here when | Keep out |
 | --- | --- | --- | --- |
 | `Camera/PlayerCameraController.cs` | Explore/Aim camera, look, follow, shoulder, FOV, recoil, crosshair and hit marker | Any player-camera behavior or camera-facing aiming feedback | Weapon damage/ammo rules or player movement rules |
-| `Camera/Obstruction/CameraObstructionHandler.cs` | Camera-to-target obstruction detection and future renderer fading | Complete obstruction/collision/fade behavior; presentation smoothing may use PrimeTween | Camera mode decisions or gameplay state |
+| `Camera/Obstruction/CameraObstructionHandler.cs` | What counts as an obstruction: renderer fading and the camera-collision resolve (`ResolveCameraPosition`) | Obstruction/collision/fade behavior; presentation smoothing may use PrimeTween | Where the camera is - that stays in `PlayerCameraController`; camera mode decisions |
 
 ### Character / Player
 
@@ -140,9 +140,9 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 
 | File | Owns | Extend here when | Keep out |
 | --- | --- | --- | --- |
-| `Combat/StatusEffects/StatusEffectDefinition.cs` | Immutable effect ID, duration, max stacks and stack rule | Effect configuration shared by instances | Per-target runtime timers |
+| `Combat/StatusEffects/StatusEffectDefinition.cs` | Immutable effect ID, duration, max stacks, stack rule, damage tick and modifier channels | Effect configuration shared by instances; a new modifier channel | Per-target runtime timers; reaching into the systems a modifier affects |
 | `Combat/StatusEffects/StatusEffectInstance.cs` | Runtime stacks and expiration for one applied effect | Per-instance duration/stack state | Collection ownership or UI |
-| `Combat/StatusEffects/StatusEffectController.cs` | Active effect collection, apply/stack/replace/expiration, damage-over-time ticking through the shared damage pipeline, `HasEffect` lookup for consumers | Target-owned status lifecycle and further modifier aggregation (e.g. Slow feeding movement speed) | Hard-coded Player/Enemy special cases |
+| `Combat/StatusEffects/StatusEffectController.cs` | Active effect collection, apply/stack/replace/expiration, damage-over-time ticking through the shared damage pipeline, `HasEffect` lookup, and aggregated modifiers (`MoveSpeedMultiplier`) | Target-owned status lifecycle; a new aggregated modifier | Hard-coded Player/Enemy special cases; writing into movement or combat directly |
 
 ### Combat / Weapons
 

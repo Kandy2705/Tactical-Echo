@@ -142,6 +142,7 @@ GameObject:
   - component: {fileID: 942052521464371640}
   - component: {fileID: 8649923505923327251}
   - component: {fileID: 6855383751809239895}
+  - component: {fileID: 1314209844810071577}
   m_Layer: 0
   m_Name: Player_Kaia
   m_TagString: Player
@@ -261,6 +262,7 @@ MonoBehaviour:
   aimOrigin: {fileID: 6747359432106684043}
   animationController: {fileID: 1535594749522685596}
   equipment: {fileID: 6855383751809239895}
+  statusEffects: {fileID: 1314209844810071577}
   walkSpeed: 4.5
   sprintSpeed: 7
   rotationSharpness: 14
@@ -770,3 +772,15 @@ MonoBehaviour:
   startingSlot: 0
   inventory: {fileID: 8649923505923327251}
   weapon: {fileID: 3701341866759072246}
+--- !u!114 &1314209844810071577
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5317665909405138589}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43ae820f83075454f9e7a468cb61257b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.Combat.StatusEffects.StatusEffectController

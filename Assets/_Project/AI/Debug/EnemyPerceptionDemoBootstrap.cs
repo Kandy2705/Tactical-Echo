@@ -35,6 +35,7 @@ namespace TacticalEcho.AI.Debugging
         private const string EnemyInstanceName = "Enemy_01";
         private const string DemoEnemyName = "Enemy_PerceptionTest_Kaia";
         private const string RuntimeNavMeshName = "Runtime_NavMeshSurface_AI_Test";
+        private const string DemoCoverRootName = "Runtime_CoverPoints_AI_Test";
         private const float EnemyNavMeshSnapDistance = 8f;
 
 #if UNITY_EDITOR
@@ -91,7 +92,14 @@ namespace TacticalEcho.AI.Debugging
 
             if (coverEvaluator != null)
             {
-                coverEvaluator.SetCoverPoints(FindCoverPoints(scene));
+                CoverPoint[] coverPoints = FindCoverPoints(scene);
+                if (coverPoints.Length == 0)
+                {
+                    coverPoints = CreateDemoCoverPoints(player);
+                }
+
+                coverEvaluator.SetCoverPoints(coverPoints);
+                Debug.Log($"[AI Perception Demo] Cover points available: {coverPoints.Length}.");
             }
 
             brain.ConfigurePerception(vision, hearing, memory);
@@ -123,6 +131,61 @@ namespace TacticalEcho.AI.Debugging
                 if (point != null && point.gameObject.scene == scene) scenePoints.Add(point);
             }
             return scenePoints.ToArray();
+        }
+
+        /// <summary>
+        /// The sandbox has no authored CoverPoints, so TakeCoverAction could never run. This
+        /// drops a ring of runtime cover markers around the player, snapped to the NavMesh, so
+        /// the cover path is actually exercised in the demo. Authored CoverPoints in the scene
+        /// always win - this only fills an empty scene.
+        /// </summary>
+        private static CoverPoint[] CreateDemoCoverPoints(Transform player)
+        {
+            const int pointCount = 8;
+            const float ringRadius = 9f;
+            const float peekOffset = 0.9f;
+
+            GameObject root = new(DemoCoverRootName);
+            root.hideFlags = HideFlags.DontSave;
+            root.transform.position = player.position;
+
+            System.Collections.Generic.List<CoverPoint> created = new();
+
+            for (int i = 0; i < pointCount; i++)
+            {
+                float angle = i * (360f / pointCount) * Mathf.Deg2Rad;
+                Vector3 offset = new(Mathf.Cos(angle) * ringRadius, 0f, Mathf.Sin(angle) * ringRadius);
+                Vector3 candidate = player.position + offset;
+
+                if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 4f, NavMesh.AllAreas))
+                {
+                    continue;
+                }
+
+                GameObject coverObject = new($"DemoCover_{i:00}");
+                coverObject.hideFlags = HideFlags.DontSave;
+                coverObject.transform.SetParent(root.transform, false);
+                coverObject.transform.position = hit.position;
+
+                // Peek position sits slightly toward the middle of the ring, which is where the
+                // player starts, so peeking reads as leaning out of cover rather than into it.
+                GameObject peek = new("Peek");
+                peek.hideFlags = HideFlags.DontSave;
+                peek.transform.SetParent(coverObject.transform, false);
+                peek.transform.localPosition = new Vector3(peekOffset, 0f, 0f);
+
+                CoverPoint point = coverObject.AddComponent<CoverPoint>();
+                point.ConfigurePeekPoint(peek.transform);
+                created.Add(point);
+            }
+
+            if (created.Count == 0)
+            {
+                Object.Destroy(root);
+                Debug.LogWarning("[AI Perception Demo] No runtime cover point landed on the NavMesh; cover behaviour stays untested.");
+            }
+
+            return created.ToArray();
         }
 
         private static bool EnsureNavigationAvailable(Transform player)

@@ -1,4 +1,5 @@
 using TacticalEcho.AnimationSystem.Runtime;
+using TacticalEcho.Combat.StatusEffects;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -12,8 +13,11 @@ namespace TacticalEcho.AI.Navigation
         [SerializeField, Min(0f)] private float navMeshSnapVerticalTolerance = 1f;
         [SerializeField, Min(0f)] private float rotationSharpness = 12f;
         [SerializeField] private EnemyAnimationController animationController;
+        [Tooltip("Optional. Status effects that modify movement speed. Resolved from this GameObject when empty.")]
+        [SerializeField] private StatusEffectController statusEffects;
 
         private NavMeshAgent agent;
+        private float baseSpeed = -1f;
 
         public bool IsOnNavMesh => agent != null && agent.isOnNavMesh;
         public bool HasPath => IsOnNavMesh && agent.hasPath;
@@ -29,7 +33,36 @@ namespace TacticalEcho.AI.Navigation
 
         private void Update()
         {
+            ApplyStatusSpeedModifier();
             UpdateLocomotionAnimation();
+        }
+
+        /// <summary>
+        /// Status effects own their own lifecycle; movement just reads the combined multiplier
+        /// and scales the agent speed it was configured with. Effects never touch the agent.
+        /// </summary>
+        private void ApplyStatusSpeedModifier()
+        {
+            if (agent == null)
+            {
+                return;
+            }
+
+            if (statusEffects == null)
+            {
+                statusEffects = GetComponent<StatusEffectController>();
+                if (statusEffects == null)
+                {
+                    return;
+                }
+            }
+
+            if (baseSpeed < 0f)
+            {
+                baseSpeed = agent.speed;
+            }
+
+            agent.speed = baseSpeed * statusEffects.MoveSpeedMultiplier;
         }
 
         public void ConfigureAgent(
@@ -45,7 +78,8 @@ namespace TacticalEcho.AI.Navigation
                 return;
             }
 
-            agent.speed = Mathf.Max(0f, speed);
+            baseSpeed = Mathf.Max(0f, speed);
+            agent.speed = baseSpeed;
             agent.acceleration = Mathf.Max(0f, acceleration);
             agent.radius = Mathf.Max(0.05f, radius);
             agent.height = Mathf.Max(agent.radius * 2f, height);
