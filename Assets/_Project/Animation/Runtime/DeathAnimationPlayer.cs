@@ -27,6 +27,10 @@ namespace TacticalEcho.AnimationSystem.Runtime
         private readonly List<WeaponHandIKController> suspendedIk = new();
 
         private PlayableGraph graph;
+        private bool hasSuspendedRootState;
+        private bool previousApplyRootMotion;
+        private Vector3 previousLocalPosition;
+        private Quaternion previousLocalRotation;
 
         public static bool Play(Animator animator)
         {
@@ -69,6 +73,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
             }
 
             SuspendWeaponIk(animator);
+            SuspendRootMotionState(animator);
 
             if (graph.IsValid())
             {
@@ -96,6 +101,7 @@ namespace TacticalEcho.AnimationSystem.Runtime
             }
 
             RestoreWeaponIk();
+            RestoreRootMotionState();
         }
 
         private static AnimationClip ResolveDeathClip()
@@ -119,6 +125,49 @@ namespace TacticalEcho.AnimationSystem.Runtime
             }
 
             return cachedDeathClip;
+        }
+
+        /// <summary>
+        /// The shared death clip is imported with Unity's default humanoid settings, so
+        /// "Root Transform Position (Y) > Bake Into Pose" is off and the fall to the floor is
+        /// delivered as root motion instead of being part of the pose. Gameplay keeps
+        /// applyRootMotion off because a NavMeshAgent (enemy) or a CharacterController
+        /// (player) owns the character's position, so without turning it on for the duration
+        /// of the death clip the body only rotates horizontal and stays at standing height -
+        /// a corpse floating in mid air. Root motion here moves the Animator's own transform,
+        /// which is a child of the character root, so it never fights the agent/controller.
+        /// </summary>
+        private void SuspendRootMotionState(Animator animator)
+        {
+            if (!hasSuspendedRootState)
+            {
+                hasSuspendedRootState = true;
+                previousApplyRootMotion = animator.applyRootMotion;
+                previousLocalPosition = animator.transform.localPosition;
+                previousLocalRotation = animator.transform.localRotation;
+            }
+
+            animator.applyRootMotion = true;
+        }
+
+        private void RestoreRootMotionState()
+        {
+            if (!hasSuspendedRootState)
+            {
+                return;
+            }
+
+            hasSuspendedRootState = false;
+
+            Animator animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                return;
+            }
+
+            animator.applyRootMotion = previousApplyRootMotion;
+            animator.transform.localPosition = previousLocalPosition;
+            animator.transform.localRotation = previousLocalRotation;
         }
 
         /// <summary>
