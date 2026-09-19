@@ -54,18 +54,7 @@ namespace TacticalEcho.AI.Debugging
             if (!IsSandboxScene(scene)) return;
 
             EnemyPerceptionDemoView view = FindDemoView(scene);
-            if (view == null)
-            {
-                Debug.LogWarning("[AI Perception Demo] No scene-authored Enemy_01 was found. Open TacticalEcho_Sandbox in the Editor or use Tactical Echo/AI/Rebuild Sandbox Perception Enemy.");
-                return;
-            }
-
             PlayerVisualController playerVisual = FindPlayerVisual(scene);
-            if (playerVisual == null || playerVisual.VisualRoot == null)
-            {
-                Debug.LogWarning("[AI Perception Demo] Player visual was not found; demo enemy was not initialized.");
-                return;
-            }
 
             GameObject enemy = view.gameObject;
             EnemyMovement movement = enemy.GetComponent<EnemyMovement>();
@@ -80,12 +69,6 @@ namespace TacticalEcho.AI.Debugging
             CoverEvaluator coverEvaluator = enemy.GetComponent<CoverEvaluator>();
             WeaponController weapon = enemy.GetComponentInChildren<WeaponController>(true);
             Transform eyeOrigin = enemy.transform.Find("EyeOrigin");
-
-            if (movement == null || hearing == null || memory == null || vision == null || brain == null || health == null || eyeOrigin == null)
-            {
-                Debug.LogError("[AI Perception Demo] Scene-authored enemy setup is incomplete. Use Tactical Echo/AI/Rebuild Sandbox Perception Enemy to repair the sandbox demo.", enemy);
-                return;
-            }
 
             Transform player = playerVisual.transform;
             vision.Configure(eyeOrigin, player, Physics.DefaultRaycastLayers, Physics.DefaultRaycastLayers);
@@ -367,7 +350,7 @@ namespace TacticalEcho.AI.Debugging
         {
             EnsureFolderExists(EnemyPrefabFolder);
             GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(EnemyPrefabPath);
-            bool needsRebuild = forceRebuild || existingPrefab == null || !IsEnemyPrefabValid(existingPrefab);
+            bool needsRebuild = forceRebuild || existingPrefab == null;
             if (!needsRebuild) return false;
             if (existingPrefab != null) AssetDatabase.DeleteAsset(EnemyPrefabPath);
 
@@ -387,25 +370,6 @@ namespace TacticalEcho.AI.Debugging
             {
                 Object.DestroyImmediate(enemyRoot);
             }
-        }
-
-        private static bool IsEnemyPrefabValid(GameObject prefab)
-        {
-            return prefab != null
-                && prefab.GetComponent<EnemyBrain>() != null
-                && prefab.GetComponent<EnemyMovement>() != null
-                && prefab.GetComponent<VisionSensor>() != null
-                && prefab.GetComponent<HearingSensor>() != null
-                && prefab.GetComponent<EnemyMemory>() != null
-                && prefab.GetComponent<Health>() != null
-                && prefab.GetComponent<NavMeshAgent>() is { enabled: false }
-                && prefab.GetComponent<EnemyAIGizmos>() != null
-                && prefab.GetComponent<TacticalEvaluator>() != null
-                && prefab.GetComponent<CoverEvaluator>() != null
-                && prefab.GetComponentInChildren<WeaponController>(true) != null
-                && prefab.GetComponent<EnemyPerceptionDemoView>() is { HasAuthoringContract: true }
-                && prefab.transform.Find("EyeOrigin") != null
-                && prefab.transform.Find("AI_StatusCanvas") != null;
         }
 
         private static GameObject BuildEnemyTemplate()
@@ -619,13 +583,6 @@ namespace TacticalEcho.AI.Debugging
         private static void PlaceEnemyNearPlayer(Scene scene, Transform enemy)
         {
             PlayerVisualController playerVisual = FindPlayerVisual(scene);
-            if (playerVisual == null)
-            {
-                enemy.position = new Vector3(0f, 0f, 8f);
-                enemy.rotation = Quaternion.identity;
-                return;
-            }
-
             Transform player = playerVisual.transform;
             Vector3 desired = player.position + player.forward * 9f + player.right * 2.5f;
             Vector3 rayOrigin = desired + Vector3.up * 15f;
