@@ -66,7 +66,8 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | Save schema/records | `SaveGameData.cs` | Serialized save DTOs. |
 | Save files, temp/backup/load | `SaveManager.cs` | Persistence orchestration. |
 | Persistent object identity | `StableId.cs` | Stable save identity. |
-| Reduce expensive every-frame work after profiling | `TickScheduler.cs` | Register scheduled callbacks; optimize only with evidence. |
+| Reduce expensive every-frame work after profiling | `TickScheduler.cs` | Register scheduled callbacks (`EnemyBrain` perception already does); optimize only with evidence. |
+| Patrol waypoints in a scene | `PatrolRoute.cs` | Authored route markers, like `CoverPoint` is authored cover. |
 
 ## File-by-file ownership map
 
@@ -86,10 +87,11 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 | `AI/Perception/VisionSensor.cs` | FOV/range/LOS vision detection | Vision scanning and target visibility rules | Enemy memory or combat decisions |
 | `AI/States/EnemyStateBase.cs` | Shared state base/lifecycle access to Brain | Behavior common to all enemy states | Per-state logic that belongs in a concrete state |
 | `AI/States/EnemyStateId.cs` | Enemy high-level state identifiers | Add an ID only when there is a genuinely new high-level state | Tactical action IDs |
-| `AI/States/PatrolState.cs` | Patrol-state behavior | Patrol routes/idling when implemented | Investigate/search/combat logic |
+| `AI/Patrol/PatrolRoute.cs` | Authored patrol path: ordered waypoints, looping and nearest-waypoint lookup | Route shape and route queries | Who walks it, or when |
+| `AI/States/PatrolState.cs` | Walking the authored `PatrolRoute` with a dwell at each waypoint, and holding position when no route is assigned | Patrol pacing, route-following rules | Route data itself; investigate/search/combat logic |
 | `AI/States/InvestigateState.cs` | Reaction to a remembered/heard position | Move to and inspect `EnemyMemory` information | Following live player Transform after LOS is lost |
 | `AI/States/CombatState.cs` | Combat-state orchestration | Invoke tactical evaluation and execute the selected intent | Low-level shooting/NavMesh implementation |
-| `AI/States/SearchState.cs` | Search around remembered target information, bounded by a timeout back to Patrol | Multi-point search pattern based on `EnemyMemory` | Tracking the real player without LOS |
+| `AI/States/SearchState.cs` | Sweeping the remembered position plus a deterministic ring around it, bounded by a timeout back to Patrol | Sweep shape, dwell pacing | Tracking the real player without LOS |
 | `AI/States/RetreatState.cs` | High-level retreat behavior | Retreat state entry/tick/exit | Movement implementation or weapon internals |
 | `AI/States/DeadState.cs` | Dead-state entry behavior | Stop/disable state-owned AI activity and request death presentation through the animation boundary | Damage calculation or direct Animator parameter manipulation |
 | `AI/TacticalActions/ITacticalAction.cs` | Tactical action contract | Shared requirements for every scored tactical action | Concrete scoring values |
@@ -184,7 +186,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 
 | File | Owns | Extend here when | Keep out |
 | --- | --- | --- | --- |
-| `Optimization/TickScheduler.cs` | Lower-frequency callback scheduling | Profiling shows expensive systems do not need every-frame updates | Premature optimization or gameplay decisions |
+| `Optimization/TickScheduler.cs` | The shared low-frequency tick budget and its scene-wide instance (`TickScheduler.Shared`) | Systems that should share the budget; budget interval policy | Premature optimization or gameplay decisions |
 
 ### Save / Load
 
@@ -207,7 +209,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 
 The foundation intentionally contains several unfinished extension points. Future tasks should complete these owners instead of making parallel classes:
 
-- `PatrolState`, `InvestigateState`, `CombatState`, `SearchState` and `RetreatState` are currently state shells. Put the corresponding state behavior there.
+- `PatrolState`, `InvestigateState`, `CombatState`, `SearchState` and `RetreatState` own their own behaviour. Patrol follows a `PatrolRoute` and Search sweeps a ring derived from `EnemyMemory`; extend those states rather than adding a controller beside them. Search and Patrol must keep deriving every destination from remembered snapshots, never from the live player Transform.
 - `ShootAction`, `AdvanceAction`, `TakeCoverAction`, `RepositionAction`, `ReloadAction` and `RetreatAction` already exist and already score decisions. Their `Execute` methods are currently empty. Finish them and delegate to `EnemyMovement`, `WeaponController` and animation boundaries instead of creating `EnemyShootController`, `EnemyReloadController`, etc.
 - `CameraObstructionHandler` now fades obstructing renderers via `MaterialPropertyBlock` (alpha on `_BaseColor`), not just querying for them. This only has a visible effect on materials whose Surface Type is Transparent/Fade - extend this component (not a new one) once obstructing geometry uses such materials. Camera collision (physically pulling the camera in front of geometry) is still not implemented.
 - `SaveManager` already owns main/temp/backup persistence and `ISaveParticipant` already defines capture/restore. Validation, migration and restoration should grow inside the SaveLoad boundary rather than as unrelated gameplay managers.

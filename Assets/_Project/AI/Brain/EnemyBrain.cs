@@ -6,7 +6,9 @@ using TacticalEcho.AI.States;
 using TacticalEcho.AI.TacticalActions;
 using TacticalEcho.AnimationSystem.Runtime;
 using TacticalEcho.Combat.Health;
+using TacticalEcho.AI.Patrol;
 using TacticalEcho.Combat.StatusEffects;
+using TacticalEcho.Optimization;
 using TacticalEcho.Combat.Weapons;
 using TacticalEcho.Core.Events;
 using TacticalEcho.Core.StateMachine;
@@ -28,6 +30,9 @@ namespace TacticalEcho.AI.Brain
         [SerializeField] private EnemyMovement movement;
         [SerializeField] private WeaponController weapon;
         [SerializeField] private Health health;
+        [SerializeField] private PatrolRoute patrolRoute;
+        [Tooltip("Run AI perception and decisions on the shared TickScheduler budget instead of every frame.")]
+        [SerializeField] private bool useTickScheduler = true;
         [SerializeField] private EnemyAnimationController animationController;
 
         [Header("Decision")]
@@ -41,6 +46,7 @@ namespace TacticalEcho.AI.Brain
         private readonly StateMachine<EnemyStateId> stateMachine = new();
         private Health subscribedHealth;
         private bool isDead;
+        private TickScheduler scheduler;
 
         public EnemyStateId CurrentState => stateMachine.CurrentId;
         public VisionSensor Vision => vision;
@@ -53,6 +59,7 @@ namespace TacticalEcho.AI.Brain
         public CoverEvaluator CoverEvaluator => coverEvaluator;
         public StatusEffectController StatusEffects => statusEffects;
         public Health Health => health;
+        public PatrolRoute PatrolRoute => patrolRoute;
 
         private void Awake()
         {
@@ -73,23 +80,71 @@ namespace TacticalEcho.AI.Brain
         private void OnEnable()
         {
             BindHealthEvents();
+
+            if (useTickScheduler)
+            {
+                // Keep the instance we registered with: resolving it again during teardown
+                // would recreate the scheduler GameObject while the scene is unloading.
+                scheduler = TickScheduler.Shared;
+                scheduler.Register(TickAi);
+            }
         }
 
         private void OnDisable()
         {
             UnbindHealthEvents();
+
+            if (scheduler != null)
+            {
+                scheduler.Unregister(TickAi);
+                scheduler = null;
+            }
         }
 
         private void Update()
         {
-            if (isDead || (health != null && !health.IsAlive))
+            if (!IsAiActive())
             {
-                HandleDied();
                 return;
             }
 
-            vision?.TickSensor(Time.deltaTime);
-            hearing?.TickSensor(Time.deltaTime);
+            // Without a scheduler the brain owns the whole step itself.
+            if (scheduler == null)
+            {
+                TickPerception(Time.deltaTime);
+
+                if (!IsAiActive())
+                {
+                    return;
+                }
+            }
+
+            // The state machine stays per-frame on purpose. It is cheap, and it drives
+            // facing and destination updates - running it on the 10 Hz budget would make
+            // enemies visibly snap when turning. The budget exists for the expensive part,
+            // which is perception.
+            stateMachine.Tick(Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Perception step registered with the shared tick budget: sensors (the raycasting
+        /// part), memory decay and the perception-driven state transitions. Receives the real
+        /// elapsed time, so sensor and memory timers stay correct at any budget interval.
+        /// </summary>
+        private void TickAi(float deltaTime)
+        {
+            if (!IsAiActive())
+            {
+                return;
+            }
+
+            TickPerception(deltaTime);
+        }
+
+        private void TickPerception(float deltaTime)
+        {
+            vision?.TickSensor(deltaTime);
+            hearing?.TickSensor(deltaTime);
 
             bool canSeeTarget = vision != null && vision.HasLineOfSight && vision.VisibleTarget != null;
             bool heardNoise = false;
@@ -107,7 +162,17 @@ namespace TacticalEcho.AI.Brain
 
             memory?.TickMemory();
             UpdatePerceptionDrivenState(canSeeTarget, heardNoise);
-            stateMachine.Tick(Time.deltaTime);
+        }
+
+        private bool IsAiActive()
+        {
+            if (isDead || (health != null && !health.IsAlive))
+            {
+                HandleDied();
+                return false;
+            }
+
+            return true;
         }
 
         public void ConfigurePerception(VisionSensor newVision, HearingSensor newHearing, EnemyMemory newMemory)

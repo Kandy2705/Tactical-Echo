@@ -105,4 +105,6 @@ Death is a latch, and it is held in two places at once. `EnemyAnimationControlle
 
 ## Performance direction
 
+`TickScheduler` is the shared low-frequency budget and is now actually used: `EnemyBrain` registers its perception step (sensors, memory decay, perception-driven transitions) with it, so the cost of AI thinking is one interval for the whole scene rather than a timer per component. The state machine deliberately stays per frame - it is cheap and it drives facing and destination updates, which visibly snap at 10 Hz. `VisionSensor` keeps its own scan interval on top; the scheduler is the global budget, the sensor interval is that one sensor's rate.
+
 Optimization is evidence-driven. Sensor frequency, tactical decision frequency, pooling and allocation changes should be made after profiling. `TickScheduler` is provided as the first boundary for moving expensive logic away from every-frame updates.
