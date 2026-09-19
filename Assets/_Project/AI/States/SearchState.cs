@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace TacticalEcho.AI.States
 {
-    /// <summary>
-    /// Sweeps the area around the last remembered position instead of standing on it.
-    /// Every point searched is derived from the memory snapshot taken on Enter; the live
-    /// player Transform is never read after line of sight is lost.
-    /// </summary>
+    
+    
+    
+    
+    
     public sealed class SearchState : EnemyStateBase
     {
         private const float SearchStoppingDistance = 0.6f;
@@ -16,8 +16,8 @@ namespace TacticalEcho.AI.States
         private const float PointDwellDuration = 1.1f;
         private const int SweepPointCount = 4;
 
-        // Allocated once per state instance, filled on Enter. Search runs every time contact
-        // is lost, so the sweep must not allocate a fresh array each time it starts.
+        
+        
         private readonly Vector3[] sweepPoints = new Vector3[SweepPointCount + 1];
 
         private int pointCount;
@@ -40,13 +40,13 @@ namespace TacticalEcho.AI.States
             hasSearchPosition = Brain.Memory.HasKnownPosition;
             if (!hasSearchPosition)
             {
-                // Nothing remembered to search around. Give up immediately instead of idling
-                // in Search forever.
+                
+                
                 Brain.ChangeState(EnemyStateId.Patrol);
                 return;
             }
 
-            // Snapshot remembered information only, then derive the whole sweep from it.
+            
             BuildSweep(Brain.Memory.LastKnownPosition);
             MoveToCurrentPoint();
         }
@@ -58,8 +58,8 @@ namespace TacticalEcho.AI.States
                 return;
             }
 
-            // Search is bounded: after SearchTimeoutDuration without re-acquiring the target
-            // the AI gives up and resumes Patrol instead of sweeping forever.
+            
+            
             elapsedTime += deltaTime;
             if (elapsedTime >= SearchTimeoutDuration)
             {
@@ -71,8 +71,8 @@ namespace TacticalEcho.AI.States
             {
                 dwellRemaining -= deltaTime;
 
-                // Look toward the next point while pausing, so the sweep reads as searching
-                // rather than as standing still.
+                
+                
                 if (pointIndex + 1 < pointCount)
                 {
                     Brain.Movement.FacePosition(sweepPoints[pointIndex + 1]);
@@ -106,10 +106,10 @@ namespace TacticalEcho.AI.States
             Brain.Movement.Stop();
         }
 
-        /// <summary>
-        /// The remembered position first, then a ring around it. The ring is deterministic so
-        /// the sweep is reproducible when debugging a recorded run.
-        /// </summary>
+        
+        
+        
+        
         private void BuildSweep(Vector3 origin)
         {
             sweepPoints[0] = origin;
@@ -126,10 +126,10 @@ namespace TacticalEcho.AI.States
             }
         }
 
-        /// <summary>
-        /// Skips sweep points that cannot be reached; when none are left the sweep is over and
-        /// the timeout in Tick returns the AI to Patrol.
-        /// </summary>
+        
+        
+        
+        
         private void MoveToCurrentPoint()
         {
             while (pointIndex < pointCount)

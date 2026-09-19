@@ -17,13 +17,13 @@ namespace TacticalEcho.Combat.Health
         public float Max => maxHealth;
         public float Normalized => maxHealth <= 0f ? 0f : Current / maxHealth;
 
-        /// <summary>
-        /// Health is only meaningful once it has been initialized. Observers such as
-        /// EnemyBrain.BindHealthEvents run from OnEnable, which Unity does not order
-        /// against this component's Awake, so a not-yet-initialized Health must never
-        /// report "not alive" - otherwise the observer latches a death on a character
-        /// that is actually at full health.
-        /// </summary>
+        
+        
+        
+        
+        
+        
+        
         public bool IsAlive => !initialized || Current > 0f;
 
         private void Awake()

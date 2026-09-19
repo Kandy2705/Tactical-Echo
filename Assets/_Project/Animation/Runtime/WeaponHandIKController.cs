@@ -106,9 +106,9 @@ namespace TacticalEcho.AnimationSystem.Runtime
             Transform characterRoot = player != null ? player.transform : animator.transform;
             Vector3 up = characterRoot.up;
 
-            // For a rifle, the support-hand grip is physically in front of the trigger-hand grip.
-            // That makes RightHandGrip -> LeftHandGrip a stable weapon-forward reference without
-            // depending on the imported model's arbitrary FBX local axes.
+            
+            
+            
             Vector3 gripForward = Vector3.ProjectOnPlane(leftGrip.position - rightGrip.position, up);
             Vector3 characterForward = Vector3.ProjectOnPlane(characterRoot.forward, up);
 
@@ -120,9 +120,9 @@ namespace TacticalEcho.AnimationSystem.Runtime
             gripForward.Normalize();
             characterForward.Normalize();
 
-            // If the barrel/support-hand side points behind the character, rotate the complete
-            // weapon mount around the right-hand pivot. Because the right-hand grip already sits
-            // on that pivot, its position remains locked while the rifle direction is corrected.
+            
+            
+            
             if (Vector3.Dot(gripForward, characterForward) < -0.05f)
             {
                 weaponMount.RotateAround(rightHand.position, up, 180f);

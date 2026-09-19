@@ -13,30 +13,30 @@ namespace TacticalEcho.SaveLoad.Data
         UnsupportedVersion
     }
 
-    /// <summary>
-    /// Owns what a save file is allowed to contain and how an older one is brought up to the
-    /// schema this build reads. <see cref="Persistence.SaveManager"/> owns the files and the
-    /// participants; it asks this type whether parsed data may be trusted.
-    /// </summary>
+    
+    
+    
+    
+    
     public static class SaveSchema
     {
         public const int CurrentVersion = SaveGameData.CurrentSchemaVersion;
 
-        /// <summary>
-        /// One step per schema version, keyed by the version it upgrades *from* and always
-        /// producing that version + 1. Adding a schema field means adding the step that fills
-        /// it in for older saves here, never special-casing versions at the call site.
-        /// </summary>
+        
+        
+        
+        
+        
         private static readonly Dictionary<int, Action<SaveGameData>> Migrations = new()
         {
             { 0, MigrateUnversionedToV1 }
         };
 
-        /// <summary>
-        /// Brings parsed data up to <see cref="CurrentVersion"/> and checks it is actually
-        /// usable. Returns false with a human-readable reason rather than throwing, so a
-        /// corrupt main file can fall through to the backup.
-        /// </summary>
+        
+        
+        
+        
+        
         public static bool TryPrepare(SaveGameData data, out SaveLoadStatus status, out string reason)
         {
             if (data == null)
@@ -72,8 +72,8 @@ namespace TacticalEcho.SaveLoad.Data
 
         private static bool TryMigrate(SaveGameData data, out string reason)
         {
-            // Anything at or below zero predates versioning; treat it as the unversioned schema
-            // rather than walking a negative version number.
+            
+            
             if (data.schemaVersion < 0)
             {
                 data.schemaVersion = 0;
@@ -145,8 +145,8 @@ namespace TacticalEcho.SaveLoad.Data
                     return false;
                 }
 
-                // A participant that stored nothing is legal; null payloads are normalised so
-                // restore code never has to null-check the string.
+                
+                
                 record.json ??= string.Empty;
                 record.type ??= string.Empty;
             }
@@ -155,10 +155,10 @@ namespace TacticalEcho.SaveLoad.Data
             return true;
         }
 
-        /// <summary>
-        /// Saves written before schemaVersion existed deserialize with 0, and a field absent
-        /// from the JSON can leave the records list null.
-        /// </summary>
+        
+        
+        
+        
         private static void MigrateUnversionedToV1(SaveGameData data)
         {
             data.records ??= new List<SaveRecord>();

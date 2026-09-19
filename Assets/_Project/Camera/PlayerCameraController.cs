@@ -98,15 +98,15 @@ namespace TacticalEcho.CameraSystem
 
             if (obstruction == null)
             {
-                // Nothing in the scene or prefabs attaches it, so the camera brings its own -
-                // the same self-provisioning PlayerController uses for PlayerCombatHud.
-                // Without this the collision resolve below silently never runs and the camera
-                // pushes straight through walls.
+                
+                
+                
+                
                 obstruction = gameObject.AddComponent<CameraObstructionHandler>();
             }
 
-            // The handler needs to know what the camera is looking at for both its fade scan
-            // and its collision cast; the camera controller is the one that knows.
+            
+            
             obstruction?.Configure(target);
 
             CreateCrosshair();
@@ -153,7 +153,7 @@ namespace TacticalEcho.CameraSystem
             currentOffset = Mode == CameraMode.Aim ? aimOffset : exploreOffset;
             SyncLookAnglesFromTransform();
 
-            // Keep the obstruction handler pointed at whatever the camera now follows.
+            
             obstruction?.Configure(target);
         }
 
@@ -247,9 +247,9 @@ namespace TacticalEcho.CameraSystem
 
             Vector3 desiredPosition = target.position + desiredRotation * currentOffset;
 
-            // Obstruction ownership lives in CameraObstructionHandler; positioning lives here.
-            // Resolving before the smoothing lerp means the camera slides along a wall instead
-            // of snapping once it is already inside it.
+            
+            
+            
             if (obstruction != null)
             {
                 desiredPosition = obstruction.ResolveCameraPosition(target, desiredPosition);
@@ -275,7 +275,7 @@ namespace TacticalEcho.CameraSystem
                 return;
             }
 
-            // Always visible: hip-fire still needs a clear center point.
+            
             if (!crosshairCanvas.gameObject.activeSelf)
             {
                 crosshairCanvas.gameObject.SetActive(true);

@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace TacticalEcho.AI.Patrol
 {
-    /// <summary>
-    /// Authored patrol path: an ordered set of waypoints in the scene, like
-    /// <see cref="Cover.CoverPoint"/> is authored cover. Route data lives here rather than on
-    /// EnemyBrain so several enemies can share one path and so the brain stays a coordinator.
-    /// </summary>
+    
+    
+    
+    
+    
     public sealed class PatrolRoute : MonoBehaviour
     {
         [Tooltip("Ordered waypoints. Leave empty to use this object's direct children as the route.")]
@@ -30,8 +30,8 @@ namespace TacticalEcho.AI.Patrol
                     return waypoints;
                 }
 
-                // Children as an implicit route: drop empty markers under the route object and
-                // it works with no list wiring.
+                
+                
                 if (resolved.Count != transform.childCount)
                 {
                     resolved.Clear();
@@ -58,7 +58,7 @@ namespace TacticalEcho.AI.Patrol
             return true;
         }
 
-        /// <summary>Next index, or -1 when a non-looping route has been walked to its end.</summary>
+        
         public int NextIndex(int index)
         {
             int count = ResolvedWaypoints.Count;

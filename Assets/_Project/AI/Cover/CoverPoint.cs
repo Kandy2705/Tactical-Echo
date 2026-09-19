@@ -9,10 +9,10 @@ namespace TacticalEcho.AI.Cover
         public Vector3 Position => transform.position;
         public Vector3 PeekPosition => peekPoint != null ? peekPoint.position : transform.position;
 
-        /// <summary>
-        /// Lets a spawner (the sandbox demo harness) set the peek transform on a cover point it
-        /// just created, instead of that code reaching into the serialized field.
-        /// </summary>
+        
+        
+        
+        
         public void ConfigurePeekPoint(Transform newPeekPoint)
         {
             peekPoint = newPeekPoint;

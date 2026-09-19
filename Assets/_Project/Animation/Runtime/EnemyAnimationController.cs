@@ -82,13 +82,13 @@ namespace TacticalEcho.AnimationSystem.Runtime
             }
         }
 
-        /// <summary>
-        /// Releases the death latch and hands the rig back to the AnimatorController.
-        /// PlayDeath() both raises <see cref="isDead"/> (which mutes every locomotion and
-        /// weapon parameter write) and starts a Playable graph that owns the Animator's
-        /// output. Both must be undone together, otherwise a character whose brain is alive
-        /// again keeps the death pose and never animates.
-        /// </summary>
+        
+        
+        
+        
+        
+        
+        
         public void ClearDeath()
         {
             if (!isDead)

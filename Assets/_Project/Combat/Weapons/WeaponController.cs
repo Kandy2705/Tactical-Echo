@@ -64,9 +64,9 @@ namespace TacticalEcho.Combat.Weapons
         private Light muzzleFlashLight;
         private float muzzleFlashEndTime;
 
-        // One runtime per definition, for the lifetime of this controller: swapping back to a
-        // previously held weapon must return its magazine and reserve as they were left, not
-        // hand back a freshly loaded gun.
+        
+        
+        
         private readonly Dictionary<WeaponDefinition, WeaponRuntime> runtimeByDefinition = new();
 
         private ShotTracer[] tracerPool;
@@ -123,11 +123,11 @@ namespace TacticalEcho.Combat.Weapons
             }
         }
 
-        /// <summary>
-        /// Switches which weapon this controller fires, keeping each weapon's own ammo state.
-        /// EquipmentController calls this when the active slot changes; firing, reloading and
-        /// spread stay owned here.
-        /// </summary>
+        
+        
+        
+        
+        
         public bool Equip(WeaponDefinition weaponDefinition)
         {
             if (weaponDefinition == null || weaponDefinition == definition)

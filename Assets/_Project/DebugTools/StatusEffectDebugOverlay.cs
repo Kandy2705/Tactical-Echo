@@ -5,10 +5,10 @@ using UnityEngine;
 
 namespace TacticalEcho.DebugTools
 {
-    /// <summary>
-    /// Read-only view of a character's active status effects: stacks, remaining duration and
-    /// the damage-over-time tick that StatusEffectController drives.
-    /// </summary>
+    
+    
+    
+    
     public sealed class StatusEffectDebugOverlay : DebugOverlayBase
     {
         [Header("Observed")]

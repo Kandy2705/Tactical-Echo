@@ -4,12 +4,12 @@ using UnityEngine;
 
 namespace TacticalEcho.Optimization
 {
-    /// <summary>
-    /// Shared low-frequency tick budget. Systems that do not need per-frame resolution
-    /// (AI perception, memory decay, tactical decisions) register here instead of each one
-    /// carrying its own timer, so the cost of "AI thinking" is one interval for the whole
-    /// scene and can be measured and tuned in one place.
-    /// </summary>
+    
+    
+    
+    
+    
+    
     public sealed class TickScheduler : MonoBehaviour
     {
         private const string SharedObjectName = "TickScheduler (shared)";
@@ -23,10 +23,10 @@ namespace TacticalEcho.Optimization
 
         private float timer;
 
-        /// <summary>
-        /// The scene's scheduler, created on first use. A scheduler is a global budget, so
-        /// consumers share one rather than each resolving or creating their own.
-        /// </summary>
+        
+        
+        
+        
         public static TickScheduler Shared
         {
             get
@@ -52,7 +52,7 @@ namespace TacticalEcho.Optimization
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetSharedInstance()
         {
-            // Statics survive a play-mode restart when domain reload is disabled.
+            
             shared = null;
         }
 
@@ -80,7 +80,7 @@ namespace TacticalEcho.Optimization
             float elapsed = timer;
             timer = 0f;
 
-            // Indexed and backwards-tolerant: a callback may unregister itself while ticking.
+            
             for (int i = callbacks.Count - 1; i >= 0; i--)
             {
                 if (i < callbacks.Count)

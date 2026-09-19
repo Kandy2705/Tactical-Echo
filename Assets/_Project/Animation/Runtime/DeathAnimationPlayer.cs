@@ -6,17 +6,17 @@ using UnityEngine.Playables;
 
 namespace TacticalEcho.AnimationSystem.Runtime
 {
-    /// <summary>
-    /// Plays the shared full-body death clip directly through the Animator using Playables.
-    /// This keeps death independent from locomotion/weapon Animator states and lets Player
-    /// and Enemy reuse the exact same animation path.
-    /// </summary>
-    /// <remarks>
-    /// While the graph is playing it owns the Animator's output completely: the
-    /// AnimatorController (locomotion blend tree, upper body layer) drives nothing. That is
-    /// correct for a corpse, but it means the graph must be torn down again by anything that
-    /// brings the character back - see <see cref="Stop"/>.
-    /// </remarks>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     public sealed class DeathAnimationPlayer : MonoBehaviour
     {
         private const string DeathClipResourcePath = "Death/Death_From_Front_Headshot";
@@ -48,11 +48,11 @@ namespace TacticalEcho.AnimationSystem.Runtime
             return player.PlayInternal(animator);
         }
 
-        /// <summary>
-        /// Stops the death playback and hands the rig back to the AnimatorController.
-        /// Anything that clears a death flag must call this, otherwise the character keeps
-        /// the death pose forever while the rest of its systems behave as if it were alive.
-        /// </summary>
+        
+        
+        
+        
+        
         public static void Stop(Animator animator)
         {
             if (animator == null)
@@ -127,16 +127,16 @@ namespace TacticalEcho.AnimationSystem.Runtime
             return cachedDeathClip;
         }
 
-        /// <summary>
-        /// The shared death clip is imported with Unity's default humanoid settings, so
-        /// "Root Transform Position (Y) > Bake Into Pose" is off and the fall to the floor is
-        /// delivered as root motion instead of being part of the pose. Gameplay keeps
-        /// applyRootMotion off because a NavMeshAgent (enemy) or a CharacterController
-        /// (player) owns the character's position, so without turning it on for the duration
-        /// of the death clip the body only rotates horizontal and stays at standing height -
-        /// a corpse floating in mid air. Root motion here moves the Animator's own transform,
-        /// which is a child of the character root, so it never fights the agent/controller.
-        /// </summary>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         private void SuspendRootMotionState(Animator animator)
         {
             if (!hasSuspendedRootState)
@@ -170,11 +170,11 @@ namespace TacticalEcho.AnimationSystem.Runtime
             animator.transform.localRotation = previousLocalRotation;
         }
 
-        /// <summary>
-        /// Scoped to the Animator's own hierarchy on purpose. Walking up to transform.root
-        /// would reach a shared scene container such as "Enemies" and suspend hand IK on
-        /// every other character parented under it.
-        /// </summary>
+        
+        
+        
+        
+        
         private void SuspendWeaponIk(Animator animator)
         {
             suspendedIk.Clear();

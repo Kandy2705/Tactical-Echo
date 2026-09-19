@@ -34,12 +34,12 @@ namespace TacticalEcho.Combat.StatusEffects
         public float DamagePerTick => damagePerTick;
         public float TickInterval => tickInterval;
 
-        /// <summary>
-        /// Movement speed while this effect is active, as a multiplier of the character's
-        /// normal speed. 1 means no movement modifier. This is the modifier channel that
-        /// makes an effect change gameplay rather than only tick damage, so a Slow is a new
-        /// definition asset rather than new code.
-        /// </summary>
+        
+        
+        
+        
+        
+        
         public float MoveSpeedMultiplier => Mathf.Clamp(moveSpeedMultiplier, 0.05f, 2f);
     }
 }

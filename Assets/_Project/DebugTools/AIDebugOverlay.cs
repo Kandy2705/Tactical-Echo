@@ -6,10 +6,10 @@ using UnityEngine;
 
 namespace TacticalEcho.DebugTools
 {
-    /// <summary>
-    /// Read-only view of an EnemyBrain: current state, tactical action scores and what the
-    /// AI remembers. Never reads the live player transform, only what the brain exposes.
-    /// </summary>
+    
+    
+    
+    
     public sealed class AIDebugOverlay : DebugOverlayBase
     {
         [Header("Observed")]

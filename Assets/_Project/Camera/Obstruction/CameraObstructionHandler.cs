@@ -3,19 +3,19 @@ using UnityEngine;
 
 namespace TacticalEcho.CameraSystem.Obstruction
 {
-    /// <summary>
-    /// Detects geometry between the camera and its target and fades those renderers down to
-    /// <see cref="fadedAlpha"/> instead of letting them hide the player. Renderer fade ownership
-    /// lives here per architecture.
-    /// Note: fading only has a visible effect on materials whose Surface Type is
-    /// Transparent/Fade - an Opaque URP Lit/Unlit material ignores alpha by design, so obstructing
-    /// geometry must use a transparent-capable material for this to be visible.
-    /// Note: PrimeTween is reserved for presentation smoothing per architecture, but only its
-    /// Editor installer is currently present under Assets/Plugins/PrimeTween (the actual runtime
-    /// package has not been installed in this project yet). This uses the same manual
-    /// exponential-blend already used by PlayerCameraController/PlayerController and can be
-    /// swapped for Tween.Custom once PrimeTween is installed.
-    /// </summary>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     public sealed class CameraObstructionHandler : MonoBehaviour
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -43,16 +43,16 @@ namespace TacticalEcho.CameraSystem.Obstruction
         private readonly HashSet<Renderer> obstructingThisFrame = new();
         private readonly List<Renderer> expiredRenderers = new();
         private readonly List<Renderer> trackedRenderers = new();
-        // Collider -> Renderer is stable for the lifetime of the scene geometry, so the
-        // hierarchy walk is paid once per collider instead of once per hit per frame.
+        
+        
         private readonly Dictionary<Collider, Renderer> rendererByCollider = new();
         private MaterialPropertyBlock propertyBlock;
 
         private void Awake()
         {
-            // An unconfigured LayerMask serialises as 0, which would silently disable both the
-            // fade and the collision push. Fall back to "solid world geometry": everything
-            // except the layers that must never block or fade for a camera.
+            
+            
+            
             if (obstructionMask.value == 0)
             {
                 int mask = ~0;
@@ -81,13 +81,13 @@ namespace TacticalEcho.CameraSystem.Obstruction
             target = newTarget;
         }
 
-        /// <summary>
-        /// Returns where the camera may actually sit: the desired position, or a point in front
-        /// of the first geometry between the pivot and it. The camera controller owns the
-        /// position and calls this; this type owns what counts as an obstruction.
-        /// Colliders belonging to the pivot's own hierarchy are ignored, so the character the
-        /// camera is following never pushes it.
-        /// </summary>
+        
+        
+        
+        
+        
+        
+        
         public Vector3 ResolveCameraPosition(Transform pivot, Vector3 desiredPosition)
         {
             if (!pushCameraOutOfGeometry || pivot == null)
@@ -124,9 +124,9 @@ namespace TacticalEcho.CameraSystem.Obstruction
                     continue;
                 }
 
-                // A zero distance means the cast started already overlapping; that surface
-                // cannot tell us where to stop, so it is skipped rather than collapsing the
-                // camera onto the pivot.
+                
+                
+                
                 float hitDistance = collisionHits[i].distance;
                 if (hitDistance > 0f && hitDistance < nearest)
                 {
@@ -227,8 +227,8 @@ namespace TacticalEcho.CameraSystem.Obstruction
 
                 if (!isObstructing && Mathf.Abs(currentValue - 1f) <= 0.01f)
                 {
-                    // Fully recovered and no longer obstructing: clear the override instead of
-                    // holding a MaterialPropertyBlock on it forever.
+                    
+                    
                     targetRenderer.SetPropertyBlock(null);
                     expiredRenderers.Add(targetRenderer);
                     continue;
@@ -260,11 +260,11 @@ namespace TacticalEcho.CameraSystem.Obstruction
             return resolved;
         }
 
-        /// <summary>
-        /// Drops every fade override. A MaterialPropertyBlock makes a renderer
-        /// SRP-Batcher incompatible, so leaving one behind costs draw calls for the rest of
-        /// the session.
-        /// </summary>
+        
+        
+        
+        
+        
         private void ClearAllFades()
         {
             trackedRenderers.Clear();
