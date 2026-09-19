@@ -86,7 +86,20 @@ namespace TacticalEcho.Character.Player
 
         private void Update()
         {
-            if (isDead || input == null || characterController == null)
+            if (characterController == null)
+            {
+                return;
+            }
+
+            if (isDead)
+            {
+                // Input stops at death; gravity does not. Without this the corpse freezes at
+                // whatever height it died at instead of dropping to the ground.
+                ApplyVerticalMovement();
+                return;
+            }
+
+            if (input == null)
             {
                 return;
             }
@@ -240,6 +253,15 @@ namespace TacticalEcho.Character.Player
                           * (statusEffects != null ? statusEffects.MoveSpeedMultiplier : 1f);
             PlanarVelocity = desiredDirection * speed;
 
+            ApplyVerticalMovement();
+        }
+
+        /// <summary>
+        /// Gravity and the actual CharacterController move. Split out so death can keep
+        /// falling with <see cref="PlanarVelocity"/> already zeroed.
+        /// </summary>
+        private void ApplyVerticalMovement()
+        {
             if (characterController.isGrounded && verticalVelocity < 0f)
             {
                 verticalVelocity = -groundedStickForce;

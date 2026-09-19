@@ -93,6 +93,22 @@ in from the same machine and the same build type.
 | GC Alloc per frame (B) | | | |
 | Worst frame (ms) | | | |
 
+## Culling
+
+Frustum culling is always on: Unity only renders what is inside the camera frustum, with no
+setup required.
+
+Occlusion culling - not drawing what is hidden behind other geometry - is **not active in the
+sandbox**. `TacticalEcho_Sandbox.unity` carries an `m_OcclusionCullingData` reference inherited
+from the Viking Village demo scene it was duplicated from, and that data records
+`m_SceneGUID: 217f50a4b9fbfda41b4f6faee8d22d02`, which is the Viking Village scene, not this one
+(`b1111111111111111111111111111111`). Unity validates that GUID, so the stale data is ignored.
+
+To enable it: mark the static environment as Occluder Static / Occludee Static, then
+Window > Rendering > Occlusion Culling > Bake. Measure before and after with the method above -
+in an outdoor seaside scene the win is usually small, so it belongs in the Profiler tables
+rather than being assumed.
+
 ## Known cost centres to measure first
 
 Ordered by expected cost, to be confirmed or rejected by the capture rather than assumed:

@@ -7,6 +7,7 @@ using TacticalEcho.AI.TacticalActions;
 using TacticalEcho.AnimationSystem.Runtime;
 using TacticalEcho.Combat.Health;
 using TacticalEcho.AI.Patrol;
+using TacticalEcho.Combat.Damage;
 using TacticalEcho.Combat.StatusEffects;
 using TacticalEcho.Optimization;
 using TacticalEcho.Combat.Weapons;
@@ -47,6 +48,8 @@ namespace TacticalEcho.AI.Brain
         private Health subscribedHealth;
         private bool isDead;
         private TickScheduler scheduler;
+        private Transform cachedTargetTransform;
+        private IDamageable cachedTargetDamageable;
 
         public EnemyStateId CurrentState => stateMachine.CurrentId;
         public VisionSensor Vision => vision;
@@ -147,6 +150,14 @@ namespace TacticalEcho.AI.Brain
             hearing?.TickSensor(deltaTime);
 
             bool canSeeTarget = vision != null && vision.HasLineOfSight && vision.VisibleTarget != null;
+
+            // Seeing a body is not contact. Without this the AI stays in Combat on a corpse
+            // and keeps firing at it forever.
+            if (canSeeTarget && !IsTargetAlive(vision.VisibleTarget))
+            {
+                canSeeTarget = false;
+            }
+
             bool heardNoise = false;
 
             if (canSeeTarget)
@@ -162,6 +173,28 @@ namespace TacticalEcho.AI.Brain
 
             memory?.TickMemory();
             UpdatePerceptionDrivenState(canSeeTarget, heardNoise);
+        }
+
+        /// <summary>
+        /// Whether the thing the sensors can see is still worth reacting to. The sensor only
+        /// reports what it detects; deciding that a corpse is not a threat is the brain's call.
+        /// A target with no IDamageable at all is treated as alive, so non-damageable props
+        /// behave exactly as before.
+        /// </summary>
+        private bool IsTargetAlive(Transform targetTransform)
+        {
+            if (targetTransform == null)
+            {
+                return false;
+            }
+
+            if (!ReferenceEquals(targetTransform, cachedTargetTransform))
+            {
+                cachedTargetTransform = targetTransform;
+                cachedTargetDamageable = targetTransform.GetComponentInParent<IDamageable>();
+            }
+
+            return cachedTargetDamageable == null || cachedTargetDamageable.IsAlive;
         }
 
         private bool IsAiActive()
@@ -313,6 +346,7 @@ namespace TacticalEcho.AI.Brain
                 TooCloseScore = tooCloseScore,
                 TooFarScore = tooFarScore,
                 HealthRatio = health != null ? health.Normalized : 1f,
+                TargetIsAlive = vision != null && IsTargetAlive(vision.VisibleTarget),
                 AmmoRatio = runtime != null ? runtime.AmmoRatio : 0f,
                 Threat = Mathf.Clamp01(threat),
                 Suppression = Mathf.Clamp01(suppression),

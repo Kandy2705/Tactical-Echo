@@ -96,6 +96,15 @@ namespace TacticalEcho.CameraSystem
                 obstruction = GetComponent<CameraObstructionHandler>();
             }
 
+            if (obstruction == null)
+            {
+                // Nothing in the scene or prefabs attaches it, so the camera brings its own -
+                // the same self-provisioning PlayerController uses for PlayerCombatHud.
+                // Without this the collision resolve below silently never runs and the camera
+                // pushes straight through walls.
+                obstruction = gameObject.AddComponent<CameraObstructionHandler>();
+            }
+
             // The handler needs to know what the camera is looking at for both its fade scan
             // and its collision cast; the camera controller is the one that knows.
             obstruction?.Configure(target);
