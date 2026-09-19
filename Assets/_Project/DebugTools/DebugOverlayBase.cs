@@ -22,8 +22,11 @@ namespace TacticalEcho.DebugTools
         [SerializeField, Min(8f)] private float fontSize = 16f;
         [SerializeField] private Color textColor = new(0.78f, 0.94f, 1f, 1f);
         [SerializeField] private int sortingOrder = 950;
+        [Tooltip("Seconds between text rebuilds. A debug overlay that rebuilds every frame allocates a string every frame and re-meshes TMP, which pollutes the very profile it exists to help read.")]
+        [SerializeField, Min(0f)] private float refreshInterval = 0.1f;
 
         private readonly StringBuilder builder = new();
+        private float refreshTimer;
 
         /// <summary>Name used for the generated canvas, and as the overlay's heading.</summary>
         protected abstract string OverlayName { get; }
@@ -43,10 +46,42 @@ namespace TacticalEcho.DebugTools
                 return;
             }
 
+            refreshTimer -= Time.unscaledDeltaTime;
+            if (refreshTimer > 0f)
+            {
+                return;
+            }
+
+            refreshTimer = refreshInterval;
+
             builder.Clear();
             builder.Append("== ").Append(OverlayName).AppendLine(" ==");
             BuildText(builder);
-            outputText.text = builder.ToString();
+
+            // Only pay for the string and the TMP re-mesh when the content actually moved.
+            if (!MatchesCurrentText())
+            {
+                outputText.text = builder.ToString();
+            }
+        }
+
+        private bool MatchesCurrentText()
+        {
+            string current = outputText.text;
+            if (current == null || current.Length != builder.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < builder.Length; i++)
+            {
+                if (builder[i] != current[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         protected static string Seconds(float seconds)

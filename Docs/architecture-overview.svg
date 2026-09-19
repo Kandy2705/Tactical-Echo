@@ -1,0 +1,172 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 900" width="1240" height="900" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#44506b"/>
+    </marker>
+    <marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b93a7"/>
+    </marker>
+    <style>
+      .bg{fill:#f7f8fb}
+      .band{fill:#ffffff;stroke:#dde1ea;stroke-width:1.5;rx:14}
+      .blabel{font-size:13px;font-weight:700;fill:#8892a6;letter-spacing:.08em}
+      .node{rx:9;stroke-width:1.5}
+      .n-input{fill:#eef2ff;stroke:#7c8cf8}
+      .n-player{fill:#e8f3ff;stroke:#4f9ae0}
+      .n-combat{fill:#fff0e8;stroke:#e08a4f}
+      .n-ai{fill:#eafaf0;stroke:#4fb374}
+      .n-data{fill:#f3eeff;stroke:#9a7ce0}
+      .n-sys{fill:#f1f3f7;stroke:#9aa3b5}
+      .t{font-size:13px;font-weight:600;fill:#1f2733}
+      .ts{font-size:11px;fill:#5b6576}
+      .edge{stroke:#44506b;stroke-width:1.6;fill:none;marker-end:url(#a)}
+      .edge-d{stroke:#8b93a7;stroke-width:1.3;fill:none;stroke-dasharray:5 4;marker-end:url(#ad)}
+      .note{font-size:11.5px;fill:#6b7688}
+      .rule{font-size:12px;font-weight:600;fill:#b4442f}
+      .title{font-size:20px;font-weight:700;fill:#161c26}
+      .sub{font-size:12.5px;fill:#6b7688}
+    </style>
+  </defs>
+
+  <rect class="bg" width="1240" height="900"/>
+  <text class="title" x="32" y="42">Tactical Echo — system ownership and flow</text>
+  <text class="sub" x="32" y="64">Solid arrows carry data or commands. Dashed arrows only observe. Nothing dashed may ever feed back into gameplay.</text>
+
+  <!-- BAND 1: PLAYER -->
+  <rect class="band" x="32" y="88" width="1176" height="128"/>
+  <text class="blabel" x="48" y="112">PLAYER INTENT</text>
+  <rect class="node n-input" x="48" y="126" width="150" height="62"/>
+  <text class="t" x="123" y="152" text-anchor="middle">PlayerInputReader</text>
+  <text class="ts" x="123" y="170" text-anchor="middle">reads actions only</text>
+
+  <rect class="node n-player" x="238" y="126" width="168" height="62"/>
+  <text class="t" x="322" y="152" text-anchor="middle">PlayerController</text>
+  <text class="ts" x="322" y="170" text-anchor="middle">coordinates, never owns</text>
+
+  <rect class="node n-data" x="446" y="126" width="176" height="62"/>
+  <text class="t" x="534" y="146" text-anchor="middle">EquipmentController</text>
+  <text class="ts" x="534" y="163" text-anchor="middle">primary / secondary slot</text>
+  <text class="ts" x="534" y="178" text-anchor="middle">picks the WeaponDefinition</text>
+
+  <rect class="node n-player" x="662" y="126" width="160" height="62"/>
+  <text class="t" x="742" y="152" text-anchor="middle">PlayerCameraController</text>
+  <text class="ts" x="742" y="170" text-anchor="middle">owns camera position</text>
+
+  <rect class="node n-sys" x="862" y="126" width="160" height="62"/>
+  <text class="t" x="942" y="146" text-anchor="middle">CameraObstruction</text>
+  <text class="t" x="942" y="162" text-anchor="middle">Handler</text>
+  <text class="ts" x="942" y="178" text-anchor="middle">owns what blocks</text>
+
+  <rect class="node n-player" x="1062" y="126" width="130" height="62"/>
+  <text class="t" x="1127" y="146" text-anchor="middle">Animation</text>
+  <text class="t" x="1127" y="162" text-anchor="middle">Controllers</text>
+  <text class="ts" x="1127" y="178" text-anchor="middle">only Animator writes</text>
+
+  <path class="edge" d="M198,157 L232,157"/>
+  <path class="edge" d="M406,157 L440,157"/>
+  <path class="edge" d="M822,157 L856,157"/>
+
+  <!-- BAND 2: SHARED COMBAT -->
+  <rect class="band" x="32" y="240" width="1176" height="182"/>
+  <text class="blabel" x="48" y="264">SHARED COMBAT PIPELINE — one path for Player and Enemy</text>
+
+  <rect class="node n-combat" x="48" y="282" width="168" height="72"/>
+  <text class="t" x="132" y="306" text-anchor="middle">WeaponController</text>
+  <text class="ts" x="132" y="324" text-anchor="middle">fires, reloads, spreads</text>
+  <text class="ts" x="132" y="340" text-anchor="middle">one runtime per weapon</text>
+
+  <rect class="node n-data" x="256" y="282" width="140" height="72"/>
+  <text class="t" x="326" y="312" text-anchor="middle">DamageInfo</text>
+  <text class="ts" x="326" y="330" text-anchor="middle">request payload</text>
+
+  <rect class="node n-combat" x="436" y="282" width="150" height="72"/>
+  <text class="t" x="511" y="306" text-anchor="middle">DamageSystem</text>
+  <text class="ts" x="511" y="324" text-anchor="middle">resolves IDamageable</text>
+  <text class="ts" x="511" y="340" text-anchor="middle">+ DamageHitZone mult.</text>
+
+  <rect class="node n-combat" x="626" y="282" width="140" height="72"/>
+  <text class="t" x="696" y="312" text-anchor="middle">Health</text>
+  <text class="ts" x="696" y="330" text-anchor="middle">the only IDamageable</text>
+
+  <rect class="node n-data" x="806" y="282" width="186" height="72"/>
+  <text class="t" x="899" y="304" text-anchor="middle">StatusEffectController</text>
+  <text class="ts" x="899" y="322" text-anchor="middle">stacks, expires, ticks DoT</text>
+  <text class="ts" x="899" y="338" text-anchor="middle">exposes modifier channels</text>
+
+  <rect class="node n-sys" x="1032" y="282" width="160" height="72"/>
+  <text class="t" x="1112" y="304" text-anchor="middle">Movement owners</text>
+  <text class="ts" x="1112" y="322" text-anchor="middle">read MoveSpeedMultiplier</text>
+  <text class="ts" x="1112" y="338" text-anchor="middle">effects never write here</text>
+
+  <path class="edge" d="M216,318 L250,318"/>
+  <path class="edge" d="M396,318 L430,318"/>
+  <path class="edge" d="M586,318 L620,318"/>
+  <path class="edge" d="M766,318 L800,318"/>
+  <path class="edge" d="M992,318 L1026,318"/>
+  <text class="note" x="48" y="378">DoT re-enters the same pipeline: StatusEffectController builds a DamageInfo and calls DamageSystem — it never subtracts health itself.</text>
+  <text class="rule" x="48" y="404">Equipment decides which weapon; WeaponController decides how it shoots. Neither reaches into the other.</text>
+  <path class="edge" d="M534,188 C534,220 160,220 132,276"/>
+
+  <!-- BAND 3: AI -->
+  <rect class="band" x="32" y="446" width="1176" height="290"/>
+  <text class="blabel" x="48" y="470">ENEMY AI — detect, remember, decide, perform</text>
+
+  <rect class="node n-ai" x="48" y="488" width="152" height="70"/>
+  <text class="t" x="124" y="512" text-anchor="middle">Sensors</text>
+  <text class="ts" x="124" y="530" text-anchor="middle">Vision · Hearing</text>
+  <text class="ts" x="124" y="546" text-anchor="middle">detect only, never decide</text>
+
+  <rect class="node n-data" x="240" y="488" width="152" height="70"/>
+  <text class="t" x="316" y="512" text-anchor="middle">EnemyMemory</text>
+  <text class="ts" x="316" y="530" text-anchor="middle">last known position</text>
+  <text class="ts" x="316" y="546" text-anchor="middle">confidence decays</text>
+
+  <rect class="node n-ai" x="432" y="488" width="152" height="70"/>
+  <text class="t" x="508" y="512" text-anchor="middle">EnemyBrain</text>
+  <text class="ts" x="508" y="530" text-anchor="middle">coordinator</text>
+  <text class="ts" x="508" y="546" text-anchor="middle">builds TacticalContext</text>
+
+  <rect class="node n-ai" x="624" y="488" width="168" height="70"/>
+  <text class="t" x="708" y="512" text-anchor="middle">StateMachine</text>
+  <text class="ts" x="708" y="528" text-anchor="middle">Patrol · Investigate · Combat</text>
+  <text class="ts" x="708" y="544" text-anchor="middle">Search · Retreat · Dead</text>
+
+  <rect class="node n-ai" x="832" y="488" width="168" height="70"/>
+  <text class="t" x="916" y="512" text-anchor="middle">TacticalEvaluator</text>
+  <text class="ts" x="916" y="530" text-anchor="middle">scores ITacticalAction</text>
+  <text class="ts" x="916" y="546" text-anchor="middle">interval + hysteresis</text>
+
+  <rect class="node n-sys" x="1040" y="488" width="152" height="70"/>
+  <text class="t" x="1116" y="512" text-anchor="middle">Execution</text>
+  <text class="ts" x="1116" y="530" text-anchor="middle">EnemyMovement</text>
+  <text class="ts" x="1116" y="546" text-anchor="middle">Weapon · Animation</text>
+
+  <path class="edge" d="M200,523 L234,523"/>
+  <path class="edge" d="M392,523 L426,523"/>
+  <path class="edge" d="M584,523 L618,523"/>
+  <path class="edge" d="M792,523 L826,523"/>
+  <path class="edge" d="M1000,523 L1034,523"/>
+
+  <rect class="node n-data" x="240" y="592" width="344" height="60"/>
+  <text class="t" x="412" y="616" text-anchor="middle">PatrolRoute · CoverPoint</text>
+  <text class="ts" x="412" y="634" text-anchor="middle">authored scene data the states query</text>
+  <path class="edge" d="M412,592 L412,566 L500,566 L508,562"/>
+
+  <rect class="node n-sys" x="832" y="592" width="360" height="60"/>
+  <text class="t" x="1012" y="614" text-anchor="middle">TickScheduler — shared low-frequency budget</text>
+  <text class="ts" x="1012" y="632" text-anchor="middle">perception runs here; the state machine stays per frame</text>
+  <path class="edge" d="M916,592 L916,564"/>
+
+  <text class="rule" x="48" y="688">Acceptance rule: after losing line of sight the AI reads only EnemyMemory snapshots. No system below Sensors may touch the live player Transform.</text>
+  <text class="note" x="48" y="712">Search derives its whole sweep from the memory snapshot taken on Enter, and is bounded by a timeout back to Patrol.</text>
+
+  <!-- DEBUG -->
+  <rect class="band" x="32" y="760" width="1176" height="104"/>
+  <text class="blabel" x="48" y="784">DEBUG — observes only</text>
+  <rect class="node n-sys" x="48" y="798" width="1144" height="48"/>
+  <text class="t" x="620" y="818" text-anchor="middle">DebugOverlayBase → AI · Weapon · Status · Save overlays, EnemyAIGizmos</text>
+  <text class="ts" x="620" y="836" text-anchor="middle">read-only views, throttled so the tool does not pollute the profile it exists to read</text>
+  <path class="edge-d" d="M300,798 C300,700 300,560 190,558"/>
+  <path class="edge-d" d="M700,798 C700,700 700,430 640,358"/>
+  <path class="edge-d" d="M1000,798 C1000,700 1000,430 950,358"/>
+</svg>

@@ -4,6 +4,10 @@
 
 Keep data collection, decision making, execution, persistence and presentation separate so no single `EnemyAI` or `PlayerController` becomes a God Object.
 
+![Architecture overview](architecture-overview.svg)
+
+The diagram is the same contract this document describes in words: solid arrows carry data or commands, dashed arrows only observe, and nothing dashed may feed back into gameplay. `Docs/PERFORMANCE.md` holds the physics-query and allocation audit plus the Profiler method.
+
 ## AI flow
 
 ```text
