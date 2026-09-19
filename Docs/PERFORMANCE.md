@@ -109,6 +109,59 @@ Window > Rendering > Occlusion Culling > Bake. Measure before and after with the
 in an outdoor seaside scene the win is usually small, so it belongs in the Profiler tables
 rather than being assumed.
 
+## Finding: occlusion culling is off in this scene, on purpose
+
+Measured, not assumed. With occlusion culling disabled the sandbox runs smoothly; with it
+enabled the frame hitches, and the size of the hitch scales with how many buildings change
+visibility at once. That is the whole signal needed to make the call.
+
+**Why it behaves that way.** Occlusion culling does not make rendering cheaper for free - it
+changes *when* the work happens. With it off, the visible set is large and stable, so the cost
+is spread evenly across every frame. With it on, the average drops but the variance rises: the
+frame in which a wall stops occluding must set up and submit dozens of newly visible renderers
+at once, into the camera pass and into four shadow cascades. Average frame time improves;
+frame *consistency* gets worse. A hitch is a variance problem, and this scene is the shape that
+maximises it - an open seaside village with a handful of large, discrete occluders rather than
+corridors with continuous ones.
+
+**What the reveal costs here**, from the current settings: MSAA 4x, soft shadows, main light
+shadowmap 4096, shadow distance 100 with 4 cascades. Every newly visible building is submitted
+to the camera pass plus up to four shadow cascade passes in the same frame.
+
+**Hypotheses eliminated by inspection**, so they are not re-litigated later:
+
+- Texture streaming - off in every quality level (`streamingMipmapsActive: 0`), so a mass
+  reveal cannot be triggering mip loads.
+- LOD cross-fade churn - the sandbox scene contains no `LODGroup`, so nothing cross-fades on
+  reveal.
+- GPU Resident Drawer - disabled in the pipeline asset (`m_GPUResidentDrawerMode: 0`), so
+  visibility changes are not re-uploading instance data.
+- The camera obstruction fade - the hitch reproduces with occlusion culling as the only
+  variable, and disappears when it alone is switched off.
+
+**Decision: leave occlusion culling off for the sandbox.** The scene already runs at ~74 FPS
+without it on an Apple M4, occlusion culling's win is small in an open outdoor scene with few
+complete occluders, and it costs frame consistency, which is the thing a player actually feels.
+This is an evidence-based decision to *not* apply an optimization, which is the same standard as
+applying one.
+
+**If it is enabled later**, these are the levers, in order:
+
+1. Bake settings - raise `smallestOccluder` above its current 5 and raise `smallestHole`. Both
+   produce fewer, chunkier visibility changes instead of many small pop events.
+2. Cut what a reveal costs - shadow distance 100 to 50-60 and 4 cascades to 2 removes most of
+   the per-reveal shadow work; MSAA 4x to 2x removes the rest.
+3. Re-measure. A lever that does not move the Profiler number does not go in.
+
+**To settle it definitively**, capture the spike frame in the Profiler and read which marker
+dominates it: `Culling` means the visibility query itself, `Shadows.DrawShadows` means the
+cascade submission, `RenderLoop.Draw` means draw-list setup, and `Shader.CreateGPUProgram`
+would mean this was pipeline-state compilation after all rather than culling.
+
+Note: Unity writes the new occlusion data reference and scene GUID into the scene file when the
+**scene is saved**. Baking without saving leaves the scene on disk pointing at whatever it
+referenced before.
+
 ## Isolating a hitch when the camera turns
 
 A stutter that appears the moment new geometry comes into view has several possible causes

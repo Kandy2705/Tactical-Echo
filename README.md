@@ -101,6 +101,9 @@ Stated plainly rather than implied:
 - **PrimeTween is not actually installed.** Only its Editor installer is present under
   `Assets/Plugins/PrimeTween`; presentation smoothing currently uses the project's manual
   exponential-blend convention and should move to PrimeTween once the runtime package is added.
+- **Occlusion culling is deliberately off.** Enabling it made frame time less consistent in
+  this scene - the hitch scales with how many buildings change visibility at once. The
+  measurement, the mechanism and the levers if it is revisited are in `Docs/PERFORMANCE.md`.
 - **Obstruction fade needs transparent-capable materials.** An Opaque URP material ignores alpha
   by design, so the fade is invisible on obstructing geometry until its Surface Type is
   Transparent/Fade.
