@@ -10,12 +10,26 @@ namespace TacticalEcho.DebugTools
 
 
 
+    // Read-only view of one EnemyBrain: current state, tactical action scores and memory confidence.
     public sealed class AIDebugOverlay : DebugOverlayBase
     {
         [Header("Observed")]
         [SerializeField] private EnemyBrain observedBrain;
 
         protected override string OverlayName => "AI Debug";
+
+        // Unlike the other overlays, EnemyBrain has no GetComponentInChildren fallback (this overlay is
+        // meant to sit on its own GameObject, not on the enemy itself), so it falls back to a scene-wide
+        // search. Fine for a sandbox with one enemy; call Observe() explicitly if a scene ever has more
+        // than one and this needs to watch a specific instance.
+        protected override void Awake()
+        {
+            base.Awake();
+            if (observedBrain == null)
+            {
+                observedBrain = FindFirstObjectByType<EnemyBrain>();
+            }
+        }
 
         public void Observe(EnemyBrain brain)
         {

@@ -9,6 +9,8 @@ namespace TacticalEcho.DebugTools
 
 
 
+    // Read-only view of one StatusEffectController: every active effect's stacks, remaining duration and
+    // damage-over-time tick.
     public sealed class StatusEffectDebugOverlay : DebugOverlayBase
     {
         [Header("Observed")]
@@ -16,12 +18,19 @@ namespace TacticalEcho.DebugTools
 
         protected override string OverlayName => "Status Debug";
 
+        // Same resolution order as WeaponDebugOverlay: prefer local/child, fall back to scene-wide so this
+        // still works as a standalone GameObject.
         protected override void Awake()
         {
             base.Awake();
             if (observedEffects == null)
             {
                 observedEffects = GetComponentInChildren<StatusEffectController>(true);
+            }
+
+            if (observedEffects == null)
+            {
+                observedEffects = FindFirstObjectByType<StatusEffectController>();
             }
         }
 

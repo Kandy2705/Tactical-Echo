@@ -17,6 +17,11 @@ using UnityEngine;
 
 namespace TacticalEcho.AI.Brain
 {
+    // High-level AI coordinator (see Docs/ARCHITECTURE.md - "AI flow"). Consumes sensors/memory, drives the
+    // Patrol/Investigate/Combat/Search/Retreat/Dead state machine, and builds the TacticalContext that
+    // TacticalEvaluator scores against. Delegates every low-level detail to its execution components
+    // (Movement/Weapon/AnimationController) - this class must stay a coordinator, not grow raycasts,
+    // NavMesh calls or Animator parameter writes of its own.
     public sealed class EnemyBrain : MonoBehaviour
     {
         private const float PreferredCombatRange = 12f;
@@ -63,6 +68,9 @@ namespace TacticalEcho.AI.Brain
         public Health Health => health;
         public PatrolRoute PatrolRoute => patrolRoute;
 
+        // Self-provisioning fallbacks: this used to be done at scene-authoring time by
+        // EnemyPerceptionDemoBootstrap (removed - see Docs/CODEBASE_MAP.md). Resolving it here instead
+        // means any enemy instance wires itself up correctly without a bespoke bootstrap script.
         private void Awake()
         {
             if (statusEffects == null)
@@ -70,6 +78,7 @@ namespace TacticalEcho.AI.Brain
                 statusEffects = GetComponent<StatusEffectController>();
             }
 
+            // Only auto-targets the tagged Player if nothing was authored on VisionSensor already.
             if (vision != null && vision.Target == null)
             {
                 GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
@@ -112,6 +121,10 @@ namespace TacticalEcho.AI.Brain
             }
         }
 
+        // The state machine always ticks every frame (facing/destination updates should not visibly stutter),
+        // but perception only ticks here as a fallback when useTickScheduler is off - otherwise TickAi()
+        // below runs it on the shared low-frequency budget instead (see Docs/ARCHITECTURE.md -
+        // "Performance direction").
         private void Update()
         {
             if (!IsAiActive())
@@ -244,6 +257,7 @@ namespace TacticalEcho.AI.Brain
             return stateMachine.ChangeState(nextState);
         }
 
+        // Normal path: derive suppression/threat/cover from this brain's own sensors and status effects.
         public TacticalContext BuildTacticalContext()
         {
             return BuildTacticalContextInternal(suppression: ResolveSuppression(), threatOverride: -1f, coverOverride: false);
@@ -260,6 +274,8 @@ namespace TacticalEcho.AI.Brain
             return Mathf.Clamp01((float)suppression.StackCount / maxStacks);
         }
 
+        // Override path: lets a caller (e.g. a state that already knows it is in cover, or a test) force
+        // specific threat/cover values instead of recomputing them from sensors.
         public TacticalContext BuildTacticalContext(bool coverAvailable, float threat, float suppression)
         {
             return BuildTacticalContextInternal(
@@ -383,6 +399,9 @@ namespace TacticalEcho.AI.Brain
             ChangeState(EnemyStateId.Dead);
         }
 
+        // State priority, highest first: dead > mid-Retreat (never interrupted by perception) > Combat
+        // (can see target) > Investigate (heard something) > Search (lost a target it used to see) >
+        // Patrol (nothing known). Each branch returns immediately so only one transition happens per call.
         private void UpdatePerceptionDrivenState(bool canSeeTarget, bool heardNoise)
         {
             if (health != null && !health.IsAlive)

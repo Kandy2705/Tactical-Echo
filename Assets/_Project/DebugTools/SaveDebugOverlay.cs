@@ -13,6 +13,9 @@ namespace TacticalEcho.DebugTools
 
 
 
+    // Read-only view of SaveManager's last write/read result, plus F5/F9 hotkeys to exercise save/load
+    // without gameplay UI. createSaveManagerIfMissing lets this run in a scene with no SaveManager attached
+    // yet - it hosts one itself purely to have something to observe.
     public sealed class SaveDebugOverlay : DebugOverlayBase
     {
         [Header("Observed")]

@@ -9,6 +9,9 @@ namespace TacticalEcho.AI.States
 
 
 
+    // Walks Brain.PatrolRoute waypoint by waypoint, dwelling at each one before advancing. If no
+    // PatrolRoute is assigned (or it has no waypoints), this state degrades gracefully to just holding
+    // position - it never falls back to wandering or picking its own destinations.
     public sealed class PatrolState : EnemyStateBase
     {
         private const float WaypointStoppingDistance = 0.5f;
@@ -30,6 +33,7 @@ namespace TacticalEcho.AI.States
             dwellRemaining = 0f;
             repathTimer = 0f;
 
+            // No authored route (or an empty one) - hold position instead of guessing a destination.
             if (Route == null || !Route.HasWaypoints)
             {
                 waypointIndex = -1;
@@ -109,6 +113,8 @@ namespace TacticalEcho.AI.States
 
 
 
+        // Tries the current waypoint, then walks forward through the route (bounded by Route.Count so a
+        // fully-unreachable route can't loop forever) until one waypoint accepts a NavMesh destination.
         private void MoveToCurrentWaypoint()
         {
             int attemptsLeft = Route != null ? Route.Count : 0;

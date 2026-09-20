@@ -3,10 +3,16 @@ using UnityEngine;
 
 namespace TacticalEcho.AI.TacticalActions
 {
+    // Registers every ITacticalAction (see StandardTacticalActions.cs), scores them against a
+    // TacticalContext on a fixed interval, and picks one - with hysteresis so the enemy does not flicker
+    // between two similarly-scored actions every decision tick. Owns selection only; it never touches
+    // Movement/Weapon/Animator itself, that is each action's own Execute().
     public sealed class TacticalEvaluator : MonoBehaviour
     {
         [Header("Decision Stability")]
         [SerializeField, Min(0f)] private float decisionInterval = 0.15f;
+        // How much higher a new action's score must beat the current one before switching - prevents
+        // rapid back-and-forth when two actions are nearly tied.
         [SerializeField, Range(0f, 0.5f)] private float switchThreshold = 0.08f;
 
         private readonly List<ITacticalAction> actions = new();
@@ -66,14 +72,14 @@ namespace TacticalEcho.AI.TacticalActions
             ITacticalAction nextAction = highestScoreAction;
             float nextScore = highestScore;
 
+            // Sticky selection: keep the current action unless the challenger clears it by more than
+            // switchThreshold, even if the challenger's raw score is technically higher.
             if (selectedActionStillValid
                 && lastScores.TryGetValue(selectedAction.Id, out float selectedScore)
                 && selectedScore > 0f
                 && highestScoreAction != selectedAction
                 && highestScore < selectedScore + switchThreshold)
             {
-
-
                 nextAction = selectedAction;
                 nextScore = selectedScore;
             }

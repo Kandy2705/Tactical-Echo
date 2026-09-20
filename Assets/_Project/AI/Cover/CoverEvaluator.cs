@@ -4,6 +4,9 @@ using UnityEngine.AI;
 
 namespace TacticalEcho.AI.Cover
 {
+    // Validates and scores CoverPoint candidates for one enemy; does not decide *when* to take cover
+    // (TakeCoverAction owns that) or move to it (EnemyMovement does). A cover point counts only if it is
+    // within range, NavMesh-reachable and not exposed to the threat's line of sight.
     public sealed class CoverEvaluator : MonoBehaviour
     {
         [SerializeField, Min(0.1f)] private float searchRadius = 15f;
@@ -11,6 +14,10 @@ namespace TacticalEcho.AI.Cover
 
         private readonly List<CoverPoint> coverPoints = new();
 
+        // Falls back to every CoverPoint in the scene when nothing was explicitly assigned via
+        // SetCoverPoints(). NOTE: if the scene has zero authored CoverPoint instances (as of this writing,
+        // it does), this list stays empty and TryFindBestCover() always returns false - TakeCoverAction is
+        // fully implemented but has nothing to find until CoverPoint objects are placed.
         private void Awake()
         {
             if (coverPoints.Count == 0)
@@ -36,6 +43,8 @@ namespace TacticalEcho.AI.Cover
             }
         }
 
+        // Picks the closest valid cover point to the agent (score is simply -travelDistance) rather than the
+        // best angle/concealment; refine scoring here if cover selection needs to weigh more than proximity.
         public bool TryFindBestCover(Vector3 agentPosition, Vector3 threatPosition, out CoverPoint bestCover)
         {
             bestCover = null;

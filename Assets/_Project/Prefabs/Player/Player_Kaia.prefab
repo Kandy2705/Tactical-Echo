@@ -481,8 +481,11 @@ MonoBehaviour:
   audioProfile: {fileID: 0}
   fireAudioClip: {fileID: 0}
   fireAudioVolume: 0.95
-  suppressionOnHit: {fileID: 11400000, guid: 91647d985fa54184b975e6f09069f308, type: 2}
-  bleedOnCriticalHit: {fileID: 11400000, guid: aea190d1915b44c6a67d14da266c0da1, type: 2}
+  onHitEffects:
+  - definition: {fileID: 11400000, guid: 91647d985fa54184b975e6f09069f308, type: 2}
+    requireCriticalHit: 0
+  - definition: {fileID: 11400000, guid: aea190d1915b44c6a67d14da266c0da1, type: 2}
+    requireCriticalHit: 1
   hitImpactPrefab: {fileID: 0}
   hitImpactLifetime: 2
   enableTracer: 1

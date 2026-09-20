@@ -4,6 +4,14 @@ using UnityEngine;
 
 namespace TacticalEcho.AI.TacticalActions
 {
+    // The six standard combat intents an enemy can pick between each decision tick. Every action follows
+    // the same shape: CanExecute() gates eligibility, Score() ranks it against the others (see
+    // TacticalEvaluator), and Execute() carries it out by delegating to Movement/Weapon/AnimationController -
+    // never by reimplementing NavMesh or weapon logic here. Add a new intent as a new sealed class in this
+    // file plus a TacticalActionId, not as a special case inside an existing action.
+
+    // Fire at the current target. Scores higher at preferred range, with ammo to spare, and while not
+    // suppressed; only eligible with a live line of sight and a loaded weapon.
     public sealed class ShootAction : ITacticalAction
     {
         public TacticalActionId Id => TacticalActionId.Shoot;
@@ -64,6 +72,8 @@ namespace TacticalEcho.AI.TacticalActions
         }
     }
 
+    // Close the distance when the target is too far to fight effectively. Scores from TooFarScore, reduced
+    // by suppression/threat so an enemy under fire prefers cover/retreat over walking into it.
     public sealed class AdvanceAction : ITacticalAction
     {
         private const float CombatStoppingDistance = 8f;
@@ -97,6 +107,9 @@ namespace TacticalEcho.AI.TacticalActions
         }
     }
 
+    // Retreat to the best available CoverPoint. Scores from threat/suppression/wounds combined; only
+    // eligible when CoverEvaluator can actually find one (CoverAvailable) - see CoverEvaluator.cs for why
+    // that can be false in a scene with no authored CoverPoint instances.
     public sealed class TakeCoverAction : ITacticalAction
     {
         private const float CoverStoppingDistance = 0.4f;
@@ -132,6 +145,9 @@ namespace TacticalEcho.AI.TacticalActions
         }
     }
 
+    // Sidestep to a better range/angle instead of standing still or charging in - picks a point offset from
+    // the target at DesiredRange, on whichever lateral side is deterministic per-instance (GetInstanceID()
+    // parity) so multiple enemies do not all reposition to the same spot.
     public sealed class RepositionAction : ITacticalAction
     {
         private const float DesiredRange = 10f;
@@ -184,6 +200,8 @@ namespace TacticalEcho.AI.TacticalActions
         }
     }
 
+    // Reload when empty or safe to do so. Scores 1 when the magazine is fully empty (must reload now) and
+    // rises with ammo need otherwise, with a small bonus for being in cover or out of line of sight.
     public sealed class ReloadAction : ITacticalAction
     {
         public TacticalActionId Id => TacticalActionId.Reload;
@@ -233,6 +251,9 @@ namespace TacticalEcho.AI.TacticalActions
         }
     }
 
+    // Break off and flee once badly wounded - only eligible below RetreatHealthThreshold, and effectively
+    // mandatory (score 1) at/under CriticalHealthThreshold. Execute() hands off to the Retreat high-level
+    // state rather than moving directly, since retreating is its own multi-frame behaviour.
     public sealed class RetreatAction : ITacticalAction
     {
         private const float RetreatHealthThreshold = 0.45f;

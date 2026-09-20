@@ -8,6 +8,8 @@ namespace TacticalEcho.DebugTools
 
 
 
+    // Read-only view of one WeaponController: ammo, reload timing, and the spread cone (still/hip/aim/
+    // moving rows) that actually drives shot direction in WeaponController.ApplySpread.
     public sealed class WeaponDebugOverlay : DebugOverlayBase
     {
         [Header("Observed")]
@@ -17,12 +19,20 @@ namespace TacticalEcho.DebugTools
 
         protected override string OverlayName => "Weapon Debug";
 
+        // Prefers a WeaponController on this object/its children (the intended placement - drop this on the
+        // character that owns the weapon); falls back to a scene-wide search so it still works as a
+        // standalone GameObject dropped anywhere in the scene.
         protected override void Awake()
         {
             base.Awake();
             if (observedWeapon == null)
             {
                 observedWeapon = GetComponentInChildren<WeaponController>(true);
+            }
+
+            if (observedWeapon == null)
+            {
+                observedWeapon = FindFirstObjectByType<WeaponController>();
             }
         }
 

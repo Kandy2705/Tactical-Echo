@@ -9,6 +9,10 @@ using UnityEngine.Rendering;
 
 namespace TacticalEcho.Combat.Weapons
 {
+    // Shared weapon execution boundary used by both Player and Enemy (see Docs/ARCHITECTURE.md - "Combat flow").
+    // Owns hitscan firing, damage dispatch, reload lifecycle, on-hit status effects, and shot feedback
+    // (tracer/audio/muzzle flash/noise). Player input and AI tactical scoring only ever call into this class;
+    // they must not duplicate raycast/damage/reload logic themselves.
     public sealed class WeaponController : MonoBehaviour
     {
         private const string DefaultAudioProfileResourcePath = "Combat/RifleAudioProfile";
@@ -25,11 +29,12 @@ namespace TacticalEcho.Combat.Weapons
         [SerializeField] private AudioClip fireAudioClip;
         [SerializeField, Range(0f, 1f)] private float fireAudioVolume = 0.95f;
 
+        // Data-driven so a new on-hit effect is one more list entry, not a new field plus a new
+        // "if" branch in ApplyHitStatusEffects(). Existing rules: Suppression on every damaging hit,
+        // Bleed on a critical hit only (see OnHitStatusEffectRule below).
         [Header("Status Effects On Hit")]
-        [Tooltip("Applied to whatever is hit and damaged, if it has a StatusEffectController. Any hit that lands is suppressive.")]
-        [SerializeField] private StatusEffectDefinition suppressionOnHit;
-        [Tooltip("Applied in addition to suppressionOnHit when the hit was a critical (e.g. headshot) hit.")]
-        [SerializeField] private StatusEffectDefinition bleedOnCriticalHit;
+        [Tooltip("Effects this weapon applies to whatever it hits and damages, if the target has a StatusEffectController. Add one entry per effect.")]
+        [SerializeField] private List<OnHitStatusEffectRule> onHitEffects = new();
 
         [Header("Tracer")]
         [SerializeField] private bool enableTracer = true;
@@ -80,11 +85,29 @@ namespace TacticalEcho.Combat.Weapons
             public float EndTime;
         }
 
+        // One configurable on-hit effect: what to apply, and whether it requires a critical hit.
+        // Keeping this a plain serializable rule (instead of a dedicated field per effect) is what lets
+        // ApplyHitStatusEffects() stay a simple loop no matter how many effects a weapon ends up applying.
+        [Serializable]
+        private sealed class OnHitStatusEffectRule
+        {
+            [SerializeField] private StatusEffectDefinition definition;
+            [Tooltip("On: only applies on a critical hit (e.g. a headshot). Off: applies on every damaging hit.")]
+            [SerializeField] private bool requireCriticalHit;
+
+            public StatusEffectDefinition Definition => definition;
+            public bool RequireCriticalHit => requireCriticalHit;
+        }
+
         private void Awake()
         {
             InitializeRuntime();
             ResolveAudioProfile();
         }
+
+        // Per-frame upkeep only: spread decay, reload completion timing and the muzzle flash/tracer
+        // fade-out. None of this owns gameplay decisions - Player input and AI actions call TryFire()/
+        // TryBeginReload() to actually do something.
 
         private void Update()
         {
@@ -128,6 +151,8 @@ namespace TacticalEcho.Combat.Weapons
 
 
 
+        // Switches which weapon this controller fires, keeping a separate WeaponRuntime per definition
+        // (see runtimeByDefinition) so swapping back to a weapon returns it with the ammo it was left with.
         public bool Equip(WeaponDefinition weaponDefinition)
         {
             if (weaponDefinition == null || weaponDefinition == definition)
@@ -143,6 +168,8 @@ namespace TacticalEcho.Combat.Weapons
             return true;
         }
 
+        // One-time setup used when this controller is provisioned in code (rather than authored in the
+        // Inspector) - assigns the starting definition and muzzle instead of swapping an existing one.
         public void Configure(WeaponDefinition weaponDefinition, Transform muzzleTransform)
         {
             definition = weaponDefinition;
@@ -151,6 +178,9 @@ namespace TacticalEcho.Combat.Weapons
             ResolveAudioProfile();
         }
 
+        // The weapon execution boundary: consumes ammo/cooldown, applies spread, raycasts, resolves
+        // damage + on-hit status effects, then fires off tracer/audio/muzzle-flash/noise feedback.
+        // Player and AI both call this instead of implementing any of it themselves.
         public bool TryFire(
             Vector3 origin,
             Vector3 direction,
@@ -544,25 +574,26 @@ namespace TacticalEcho.Combat.Weapons
 
         private void ApplyHitStatusEffects(Collider hitCollider, bool isCritical)
         {
-            if (suppressionOnHit == null && bleedOnCriticalHit == null)
+            if (onHitEffects.Count == 0)
             {
                 return;
             }
 
+            // Effects only land on targets that can actually hold them; anything else (props, terrain) is a no-op.
             StatusEffectController statusEffects = hitCollider.GetComponentInParent<StatusEffectController>();
             if (statusEffects == null)
             {
                 return;
             }
 
-            if (suppressionOnHit != null)
+            foreach (OnHitStatusEffectRule rule in onHitEffects)
             {
-                statusEffects.Apply(suppressionOnHit);
-            }
+                if (rule.Definition == null || (rule.RequireCriticalHit && !isCritical))
+                {
+                    continue;
+                }
 
-            if (isCritical && bleedOnCriticalHit != null)
-            {
-                statusEffects.Apply(bleedOnCriticalHit);
+                statusEffects.Apply(rule.Definition);
             }
         }
     }
