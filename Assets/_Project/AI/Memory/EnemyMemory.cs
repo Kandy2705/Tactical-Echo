@@ -5,7 +5,6 @@ namespace TacticalEcho.AI.Memory
     public sealed class EnemyMemory : MonoBehaviour
     {
         [SerializeField, Min(0.01f)] private float memoryDuration = 8f;
-
         public bool HasSeenPosition { get; private set; }
         public bool HasHeardPosition { get; private set; }
         public Vector3 LastSeenPosition { get; private set; }

@@ -7,14 +7,8 @@ using UnityEngine;
 
 namespace TacticalEcho.AI.Debugging
 {
-
-
-
-
     public sealed class EnemyPerceptionDemoView : MonoBehaviour
     {
-        [SerializeField, HideInInspector] private bool hasAuthoringContract;
-
         private EnemyBrain brain;
         private Health health;
         private TMP_Text statusText;
@@ -26,11 +20,34 @@ namespace TacticalEcho.AI.Debugging
         private bool previousNavigationReady;
         private bool hasPreviousNavigationState;
 
-        public bool HasAuthoringContract => hasAuthoringContract;
+        private void Awake()
+        {
+            if (brain == null)
+            {
+                brain = GetComponent<EnemyBrain>();
+            }
+
+            if (health == null)
+            {
+                health = GetComponent<Health>();
+            }
+
+            if (labelRoot == null)
+            {
+                labelRoot = transform.Find("AI_StatusCanvas");
+            }
+
+            if (statusText == null && labelRoot != null)
+            {
+                statusText = labelRoot.GetComponentInChildren<TMP_Text>(true);
+            }
+
+            if (Application.isPlaying) RefreshStatus(force: true);
+            else ShowEditModeStatus();
+        }
 
         public void Configure(EnemyBrain newBrain, Health newHealth, TMP_Text newStatusText, Transform newLabelRoot)
         {
-            hasAuthoringContract = true;
             brain = newBrain;
             health = newHealth;
             statusText = newStatusText;

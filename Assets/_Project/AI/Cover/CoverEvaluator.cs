@@ -11,6 +11,14 @@ namespace TacticalEcho.AI.Cover
 
         private readonly List<CoverPoint> coverPoints = new();
 
+        private void Awake()
+        {
+            if (coverPoints.Count == 0)
+            {
+                coverPoints.AddRange(FindObjectsByType<CoverPoint>(FindObjectsInactive.Exclude, FindObjectsSortMode.None));
+            }
+        }
+
         public void SetCoverPoints(IEnumerable<CoverPoint> points)
         {
             coverPoints.Clear();

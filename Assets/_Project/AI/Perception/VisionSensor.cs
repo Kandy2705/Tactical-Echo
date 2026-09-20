@@ -38,6 +38,11 @@ namespace TacticalEcho.AI.Perception
             scanTimer = 0f;
         }
 
+        public void SetTarget(Transform newTarget)
+        {
+            target = newTarget;
+        }
+
         public void TickSensor(float deltaTime)
         {
             scanTimer -= deltaTime;

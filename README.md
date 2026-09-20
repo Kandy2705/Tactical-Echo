@@ -15,10 +15,14 @@ Full detail: [`Docs/ARCHITECTURE.md`](Docs/ARCHITECTURE.md) for the rules,
 
 1. Open the project in **Unity 6000.3.11f1**.
 2. Open `Assets/_Project/Scenes/TacticalEcho_Sandbox.unity`.
-3. Press Play. The sandbox bootstraps itself: it bakes a runtime NavMesh around the player,
-   wires the demo enemy and, if the scene has no authored `CoverPoint`, drops a ring of runtime
-   cover markers so the cover behaviour is exercised. Watch the Console for the
-   `[AI Perception Demo]` lines confirming navigation, tactical, weapon and cover readiness.
+3. Press Play. `Enemy_01` wires its own vision target (the player, resolved by the `Player` tag
+   in `EnemyBrain.Awake`) and its own cover list (every `CoverPoint` in the scene, resolved in
+   `CoverEvaluator.Awake`). If the scene has no baked NavMesh yet, `EnemyMovement.Awake` bakes a
+   runtime one around itself so the enemy can still path; baking a real NavMesh
+   (`Window > AI > Navigation`) is faster and should replace that fallback once the scene's
+   geometry is settled. `Enemy_PerceptionTest_Kaia`'s prefab and scene placement are authored by
+   hand now - the editor tool that used to regenerate them (`EnemyPerceptionDemoBootstrap`) has
+   been removed; add or rewire enemies directly on the prefab/scene going forward.
 
 ### Controls
 

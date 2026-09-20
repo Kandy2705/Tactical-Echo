@@ -1,5 +1,7 @@
 using TacticalEcho.AnimationSystem.Runtime;
+using TacticalEcho.Combat.Damage;
 using TacticalEcho.Combat.StatusEffects;
+using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -8,6 +10,9 @@ namespace TacticalEcho.AI.Navigation
     [RequireComponent(typeof(NavMeshAgent))]
     public sealed class EnemyMovement : MonoBehaviour
     {
+        private const float InitialNavMeshSnapDistance = 8f;
+        private static readonly Vector3 RuntimeNavMeshSize = new(120f, 30f, 120f);
+
         [SerializeField, Min(0f)] private float stoppingTolerance = 0.25f;
         [SerializeField, Min(0f)] private float navMeshSnapDistance = 2f;
         [SerializeField, Min(0f)] private float navMeshSnapVerticalTolerance = 1f;
@@ -29,6 +34,88 @@ namespace TacticalEcho.AI.Navigation
         {
             ResolveAgent();
             ResolveAnimationController();
+            EnsureNavMeshAvailable();
+            TrySnapToNavMesh(InitialNavMeshSnapDistance);
+        }
+
+        private void EnsureNavMeshAvailable()
+        {
+            if (HasUsableNavMesh())
+            {
+                return;
+            }
+
+            NavMeshModifier selfModifier = GetComponent<NavMeshModifier>();
+            bool createdModifier = selfModifier == null;
+            if (createdModifier)
+            {
+                selfModifier = gameObject.AddComponent<NavMeshModifier>();
+            }
+
+            selfModifier.ignoreFromBuild = true;
+            selfModifier.applyToChildren = true;
+
+            GameObject surfaceObject = new("Runtime_NavMeshSurface");
+            surfaceObject.hideFlags = HideFlags.DontSave;
+            surfaceObject.transform.position = transform.position;
+
+            NavMeshSurface surface = surfaceObject.AddComponent<NavMeshSurface>();
+            surface.collectObjects = CollectObjects.Volume;
+            surface.size = RuntimeNavMeshSize;
+            surface.center = new Vector3(0f, 5f, 0f);
+            surface.layerMask = BuildNavigationLayerMask();
+            surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
+            surface.defaultArea = NavMesh.GetAreaFromName("Walkable");
+            surface.ignoreNavMeshAgent = true;
+            surface.ignoreNavMeshObstacle = true;
+            surface.overrideTileSize = true;
+            surface.tileSize = 128;
+
+            try
+            {
+                surface.BuildNavMesh();
+            }
+            finally
+            {
+                if (createdModifier)
+                {
+                    Destroy(selfModifier);
+                }
+            }
+
+            if (!HasUsableNavMesh())
+            {
+                Destroy(surfaceObject);
+                Debug.LogWarning("No usable NavMesh was found or generated at runtime; this enemy will not be able to navigate. Bake a real NavMesh for the scene (Window > AI > Navigation) instead of relying on this fallback.", this);
+            }
+        }
+
+        private static bool HasUsableNavMesh()
+        {
+            NavMeshTriangulation triangulation = NavMesh.CalculateTriangulation();
+            return triangulation.vertices != null && triangulation.vertices.Length >= 3;
+        }
+
+        private static LayerMask BuildNavigationLayerMask()
+        {
+            int mask = ~0;
+            ExcludeLayer(ref mask, "Ignore Raycast");
+            ExcludeLayer(ref mask, "Water");
+            ExcludeLayer(ref mask, "UI");
+            ExcludeLayer(ref mask, "Reflection_Probes");
+            ExcludeLayer(ref mask, "AccessibleVolume");
+            ExcludeLayer(ref mask, "PostProcessing");
+            ExcludeLayer(ref mask, DamageHitZone.HitZoneLayerName);
+            return mask;
+        }
+
+        private static void ExcludeLayer(ref int mask, string layerName)
+        {
+            int layer = LayerMask.NameToLayer(layerName);
+            if (layer >= 0)
+            {
+                mask &= ~(1 << layer);
+            }
         }
 
         private void Update()
@@ -36,10 +123,6 @@ namespace TacticalEcho.AI.Navigation
             ApplyStatusSpeedModifier();
             UpdateLocomotionAnimation();
         }
-
-
-
-
 
         private void ApplyStatusSpeedModifier()
         {
@@ -134,9 +217,6 @@ namespace TacticalEcho.AI.Navigation
             }
 
             agent.stoppingDistance = Mathf.Max(0f, stoppingDistance);
-
-
-
             agent.isStopped = false;
             return agent.SetDestination(destinationHit.position);
         }
@@ -147,8 +227,6 @@ namespace TacticalEcho.AI.Navigation
             {
                 return;
             }
-
-
 
             agent.ResetPath();
             agent.velocity = Vector3.zero;

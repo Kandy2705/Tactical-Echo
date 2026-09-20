@@ -50,7 +50,6 @@ namespace TacticalEcho.AI.Brain
         private TickScheduler scheduler;
         private Transform cachedTargetTransform;
         private IDamageable cachedTargetDamageable;
-
         public EnemyStateId CurrentState => stateMachine.CurrentId;
         public VisionSensor Vision => vision;
         public HearingSensor Hearing => hearing;
@@ -69,6 +68,15 @@ namespace TacticalEcho.AI.Brain
             if (statusEffects == null)
             {
                 statusEffects = GetComponent<StatusEffectController>();
+            }
+
+            if (vision != null && vision.Target == null)
+            {
+                GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+                if (playerObject != null)
+                {
+                    vision.SetTarget(playerObject.transform);
+                }
             }
 
             stateMachine.Register(EnemyStateId.Patrol, new PatrolState(this));
@@ -111,7 +119,6 @@ namespace TacticalEcho.AI.Brain
                 return;
             }
 
-
             if (scheduler == null)
             {
                 TickPerception(Time.deltaTime);
@@ -122,17 +129,8 @@ namespace TacticalEcho.AI.Brain
                 }
             }
 
-
-
-
-
             stateMachine.Tick(Time.deltaTime);
         }
-
-
-
-
-
 
         private void TickAi(float deltaTime)
         {
@@ -150,8 +148,6 @@ namespace TacticalEcho.AI.Brain
             hearing?.TickSensor(deltaTime);
 
             bool canSeeTarget = vision != null && vision.HasLineOfSight && vision.VisibleTarget != null;
-
-
 
             if (canSeeTarget && !IsTargetAlive(vision.VisibleTarget))
             {
@@ -174,12 +170,6 @@ namespace TacticalEcho.AI.Brain
             memory?.TickMemory();
             UpdatePerceptionDrivenState(canSeeTarget, heardNoise);
         }
-
-
-
-
-
-
 
         private bool IsTargetAlive(Transform targetTransform)
         {
@@ -258,12 +248,6 @@ namespace TacticalEcho.AI.Brain
         {
             return BuildTacticalContextInternal(suppression: ResolveSuppression(), threatOverride: -1f, coverOverride: false);
         }
-
-
-
-
-
-
 
         private float ResolveSuppression()
         {
@@ -407,8 +391,6 @@ namespace TacticalEcho.AI.Brain
                 return;
             }
 
-
-
             if (CurrentState == EnemyStateId.Retreat)
             {
                 return;
@@ -428,9 +410,6 @@ namespace TacticalEcho.AI.Brain
 
             if (memory != null && memory.HasKnownPosition)
             {
-
-
-
                 if (CurrentState == EnemyStateId.Combat)
                 {
                     ChangeState(EnemyStateId.Search);

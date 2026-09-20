@@ -9,10 +9,6 @@ namespace TacticalEcho.AI.Cover
         public Vector3 Position => transform.position;
         public Vector3 PeekPosition => peekPoint != null ? peekPoint.position : transform.position;
 
-
-
-
-
         public void ConfigurePeekPoint(Transform newPeekPoint)
         {
             peekPoint = newPeekPoint;
