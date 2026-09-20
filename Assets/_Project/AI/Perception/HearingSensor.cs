@@ -28,7 +28,7 @@ namespace TacticalEcho.AI.Perception
 
         public void TickSensor(float deltaTime)
         {
-            // Event-driven sensor. Tick exists to keep all sensors behind the same contract.
+
         }
 
         public bool TryConsumeNoise(out NoiseEventData noise)
@@ -63,8 +63,8 @@ namespace TacticalEcho.AI.Perception
             pendingNoise = noise;
             hasPendingNoise = true;
 
-            // Keep the last accepted event as read-only sensor telemetry so debug tools can
-            // visualize the real event radius without inventing a separate hearing range.
+
+
             HasLastAudibleNoise = true;
             LastAudibleNoisePosition = noise.Position;
             LastAudibleRadius = audibleRadius;

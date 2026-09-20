@@ -22,12 +22,12 @@ using UnityEditor.SceneManagement;
 
 namespace TacticalEcho.AI.Debugging
 {
-    /// <summary>
-    /// Sandbox-only perception/tactical demo owner.
-    /// In the Editor it authors a visible enemy prefab/scene instance for debugging.
-    /// At runtime it binds that authored instance to the current player and keeps demo-only
-    /// perception/navigation/tactical wiring isolated from production enemy setup.
-    /// </summary>
+
+
+
+
+
+
     public static class EnemyPerceptionDemoBootstrap
     {
         private const string SandboxSceneName = "TacticalEcho_Sandbox";
@@ -133,12 +133,12 @@ namespace TacticalEcho.AI.Debugging
             return scenePoints.ToArray();
         }
 
-        /// <summary>
-        /// The sandbox has no authored CoverPoints, so TakeCoverAction could never run. This
-        /// drops a ring of runtime cover markers around the player, snapped to the NavMesh, so
-        /// the cover path is actually exercised in the demo. Authored CoverPoints in the scene
-        /// always win - this only fills an empty scene.
-        /// </summary>
+
+
+
+
+
+
         private static CoverPoint[] CreateDemoCoverPoints(Transform player)
         {
             const int pointCount = 8;
@@ -167,8 +167,8 @@ namespace TacticalEcho.AI.Debugging
                 coverObject.transform.SetParent(root.transform, false);
                 coverObject.transform.position = hit.position;
 
-                // Peek position sits slightly toward the middle of the ring, which is where the
-                // player starts, so peeking reads as leaning out of cover rather than into it.
+
+
                 GameObject peek = new("Peek");
                 peek.hideFlags = HideFlags.DontSave;
                 peek.transform.SetParent(coverObject.transform, false);

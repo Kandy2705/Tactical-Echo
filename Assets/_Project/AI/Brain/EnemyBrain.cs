@@ -86,8 +86,8 @@ namespace TacticalEcho.AI.Brain
 
             if (useTickScheduler)
             {
-                // Keep the instance we registered with: resolving it again during teardown
-                // would recreate the scheduler GameObject while the scene is unloading.
+
+
                 scheduler = TickScheduler.Shared;
                 scheduler.Register(TickAi);
             }
@@ -111,7 +111,7 @@ namespace TacticalEcho.AI.Brain
                 return;
             }
 
-            // Without a scheduler the brain owns the whole step itself.
+
             if (scheduler == null)
             {
                 TickPerception(Time.deltaTime);
@@ -122,18 +122,18 @@ namespace TacticalEcho.AI.Brain
                 }
             }
 
-            // The state machine stays per-frame on purpose. It is cheap, and it drives
-            // facing and destination updates - running it on the 10 Hz budget would make
-            // enemies visibly snap when turning. The budget exists for the expensive part,
-            // which is perception.
+
+
+
+
             stateMachine.Tick(Time.deltaTime);
         }
 
-        /// <summary>
-        /// Perception step registered with the shared tick budget: sensors (the raycasting
-        /// part), memory decay and the perception-driven state transitions. Receives the real
-        /// elapsed time, so sensor and memory timers stay correct at any budget interval.
-        /// </summary>
+
+
+
+
+
         private void TickAi(float deltaTime)
         {
             if (!IsAiActive())
@@ -151,8 +151,8 @@ namespace TacticalEcho.AI.Brain
 
             bool canSeeTarget = vision != null && vision.HasLineOfSight && vision.VisibleTarget != null;
 
-            // Seeing a body is not contact. Without this the AI stays in Combat on a corpse
-            // and keeps firing at it forever.
+
+
             if (canSeeTarget && !IsTargetAlive(vision.VisibleTarget))
             {
                 canSeeTarget = false;
@@ -175,12 +175,12 @@ namespace TacticalEcho.AI.Brain
             UpdatePerceptionDrivenState(canSeeTarget, heardNoise);
         }
 
-        /// <summary>
-        /// Whether the thing the sensors can see is still worth reacting to. The sensor only
-        /// reports what it detects; deciding that a corpse is not a threat is the brain's call.
-        /// A target with no IDamageable at all is treated as alive, so non-damageable props
-        /// behave exactly as before.
-        /// </summary>
+
+
+
+
+
+
         private bool IsTargetAlive(Transform targetTransform)
         {
             if (targetTransform == null)
@@ -231,9 +231,9 @@ namespace TacticalEcho.AI.Brain
 
             if (!isDead)
             {
-                // Configuration can run after a transient death was latched during scene
-                // startup. The brain clears its own flag here, so the animation layer has to
-                // be released in the same step or the two disagree permanently.
+
+
+
                 animationController?.ClearDeath();
             }
 
@@ -259,12 +259,12 @@ namespace TacticalEcho.AI.Brain
             return BuildTacticalContextInternal(suppression: ResolveSuppression(), threatOverride: -1f, coverOverride: false);
         }
 
-        /// <summary>
-        /// Turns an active Suppression status effect into a normalized 0..1 value driven by its
-        /// current stack count. This is how Suppression reaches TacticalContext/TakeCoverAction
-        /// without EnemyBrain special-casing the effect itself - the StatusEffectController
-        /// pipeline stays the single owner of effect lifecycle.
-        /// </summary>
+
+
+
+
+
+
         private float ResolveSuppression()
         {
             if (statusEffects == null || !statusEffects.HasEffect(SuppressionEffectId, out StatusEffectInstance suppression))
@@ -407,8 +407,8 @@ namespace TacticalEcho.AI.Brain
                 return;
             }
 
-            // Retreat owns its lifecycle once chosen. Perception and memory still update,
-            // but Combat must not immediately overwrite the retreat state on the next frame.
+
+
             if (CurrentState == EnemyStateId.Retreat)
             {
                 return;
@@ -428,9 +428,9 @@ namespace TacticalEcho.AI.Brain
 
             if (memory != null && memory.HasKnownPosition)
             {
-                // Losing LOS from Combat switches to Search immediately. Investigate and
-                // Search keep working from remembered positions until their own state logic
-                // finishes or memory expires. They never receive the live player Transform.
+
+
+
                 if (CurrentState == EnemyStateId.Combat)
                 {
                     ChangeState(EnemyStateId.Search);

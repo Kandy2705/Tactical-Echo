@@ -13,10 +13,10 @@ namespace TacticalEcho.Combat.Impacts
         Flesh
     }
 
-    /// <summary>
-    /// Optional authoring hook for surfaces that need a specific impact response.
-    /// Without this component, damageable targets are treated as Flesh and everything else as Default.
-    /// </summary>
+
+
+
+
     public sealed class SurfaceTypeOverride : MonoBehaviour
     {
         [SerializeField] private ImpactSurfaceType surfaceType = ImpactSurfaceType.Default;
@@ -24,10 +24,10 @@ namespace TacticalEcho.Combat.Impacts
         public ImpactSurfaceType SurfaceType => surfaceType;
     }
 
-    /// <summary>
-    /// Centralized hit presentation for weapons. Pools are created lazily on the first matching hit,
-    /// so cloned/disabled weapons do not populate the Hierarchy with unused runtime objects.
-    /// </summary>
+
+
+
+
     public sealed class SurfaceImpactSystem : MonoBehaviour
     {
         private const int BulletDecalPoolSize = 48;

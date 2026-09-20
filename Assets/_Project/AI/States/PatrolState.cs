@@ -4,11 +4,11 @@ using UnityEngine;
 
 namespace TacticalEcho.AI.States
 {
-    /// <summary>
-    /// Walks the authored <see cref="PatrolRoute"/>, pausing at each waypoint. With no route
-    /// assigned the enemy simply holds position - Patrol is the resting state, so it must be
-    /// safe to enter with nothing authored.
-    /// </summary>
+
+
+
+
+
     public sealed class PatrolState : EnemyStateBase
     {
         private const float WaypointStoppingDistance = 0.5f;
@@ -37,8 +37,8 @@ namespace TacticalEcho.AI.States
                 return;
             }
 
-            // Resume from the closest waypoint so returning from Combat or Search does not
-            // send the enemy back to the start of the route.
+
+
             waypointIndex = Route.GetNearestIndex(Brain.transform.position);
             MoveToCurrentWaypoint();
         }
@@ -69,8 +69,8 @@ namespace TacticalEcho.AI.States
                 return;
             }
 
-            // A destination can be lost if the agent was warped or the NavMesh rebuilt, which
-            // would otherwise leave the enemy standing still in Patrol forever.
+
+
             repathTimer += deltaTime;
             if (repathTimer >= RepathInterval)
             {
@@ -96,7 +96,7 @@ namespace TacticalEcho.AI.States
             int next = Route != null ? Route.NextIndex(waypointIndex) : -1;
             if (next < 0)
             {
-                // End of a non-looping route: hold here rather than restarting.
+
                 waypointIndex = -1;
                 return;
             }
@@ -105,10 +105,10 @@ namespace TacticalEcho.AI.States
             MoveToCurrentWaypoint();
         }
 
-        /// <summary>
-        /// Skips waypoints that cannot be pathed to, but only as many times as there are
-        /// waypoints, so a route where nothing is reachable stops instead of recursing.
-        /// </summary>
+
+
+
+
         private void MoveToCurrentWaypoint()
         {
             int attemptsLeft = Route != null ? Route.Count : 0;

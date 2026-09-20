@@ -32,8 +32,8 @@ namespace TacticalEcho.Character.Player
         public Vector2 Look => ReadVector2(lookAction);
         public bool IsSprinting => IsPressed(sprintAction);
 
-        // Mouse fallback is intentionally checked even when an InputActionReference exists.
-        // This keeps left-click firing reliable while right-click aim is active.
+
+
         public bool IsFiring => IsPressed(fireAction) || (Mouse.current != null && Mouse.current.leftButton.isPressed);
         public bool FirePressedThisFrame => WasPressedThisFrame(fireAction) || (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame);
         public bool ReloadPressedThisFrame => WasPressedThisFrame(reloadAction) || (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame);

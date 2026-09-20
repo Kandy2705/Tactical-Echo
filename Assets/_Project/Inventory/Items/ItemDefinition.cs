@@ -30,11 +30,11 @@ namespace TacticalEcho.Inventory.Items
         public int MaxStack => maxStack;
         public Sprite Icon => icon;
 
-        /// <summary>
-        /// The combat side of a weapon item. Inventory owns what the item *is*;
-        /// <see cref="WeaponDefinition"/> owns how it shoots. This reference is the single
-        /// link between the two, so equipping never duplicates ballistics data.
-        /// </summary>
+
+
+
+
+
         public WeaponDefinition WeaponDefinition => weaponDefinition;
 
         public bool IsWeapon => itemType == ItemType.Weapon && weaponDefinition != null;

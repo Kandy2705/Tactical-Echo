@@ -86,12 +86,12 @@ namespace TacticalEcho.SaveLoad.Persistence
             }
         }
 
-        /// <summary>
-        /// Reads, migrates and validates the save. The main file is only accepted once
-        /// <see cref="SaveSchema"/> says the data is usable, so a file that parses but is
-        /// structurally broken falls through to the backup instead of being handed to
-        /// participants.
-        /// </summary>
+
+
+
+
+
+
         public bool TryLoad(out SaveGameData data)
         {
             LastLoadUsedBackup = false;
@@ -109,7 +109,7 @@ namespace TacticalEcho.SaveLoad.Persistence
                 return true;
             }
 
-            // Report the main file's problem: it is the one the player expects to load.
+
             LastLoadStatus = mainStatus != SaveLoadStatus.MissingFile ? mainStatus : backupStatus;
             LastLoadReason = mainStatus != SaveLoadStatus.MissingFile ? mainReason : backupReason;
             LastLoadedSchemaVersion = 0;

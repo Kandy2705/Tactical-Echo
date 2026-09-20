@@ -16,7 +16,7 @@ namespace TacticalEcho.AI.TacticalActions
         public float Suppression;
         public bool HasTargetPosition;
         public bool HasLineOfSight;
-        /// <summary>False once the seen target is dead. A corpse is not a threat and is not shot at.</summary>
+
         public bool TargetIsAlive;
         public bool CoverAvailable;
         public bool PathAvailable;

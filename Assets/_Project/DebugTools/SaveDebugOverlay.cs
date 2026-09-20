@@ -8,11 +8,11 @@ using UnityEngine.InputSystem;
 
 namespace TacticalEcho.DebugTools
 {
-    /// <summary>
-    /// Read-only view of the save pipeline: what is on disk, and how the last write and the
-    /// last versioned/validated read went. The save and load keys are a debug harness for
-    /// exercising that pipeline; gameplay never depends on this overlay.
-    /// </summary>
+
+
+
+
+
     public sealed class SaveDebugOverlay : DebugOverlayBase
     {
         [Header("Observed")]

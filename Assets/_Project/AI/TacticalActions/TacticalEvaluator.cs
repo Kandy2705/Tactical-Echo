@@ -72,8 +72,8 @@ namespace TacticalEcho.AI.TacticalActions
                 && highestScoreAction != selectedAction
                 && highestScore < selectedScore + switchThreshold)
             {
-                // Small score changes should not make the character flip between actions every frame.
-                // A challenger must beat the current action by a meaningful margin.
+
+
                 nextAction = selectedAction;
                 nextScore = selectedScore;
             }

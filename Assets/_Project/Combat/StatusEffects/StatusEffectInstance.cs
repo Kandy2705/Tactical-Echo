@@ -30,11 +30,11 @@ namespace TacticalEcho.Combat.StatusEffects
             Refresh(currentTime);
         }
 
-        /// <summary>
-        /// Returns true (at most once per <see cref="Definition"/>.TickInterval) when a
-        /// damage-over-time tick is due, scaled by the current stack count. Effects with no
-        /// DamagePerTick (pure debuffs such as Suppression) never produce a tick.
-        /// </summary>
+
+
+
+
+
         public bool TryConsumeTick(float currentTime, out float tickDamage)
         {
             tickDamage = 0f;

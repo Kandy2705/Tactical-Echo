@@ -13,11 +13,11 @@ namespace TacticalEcho.Combat.StatusEffects
         public event Action EffectsChanged;
         public IReadOnlyList<StatusEffectInstance> ActiveEffects => activeEffects;
 
-        /// <summary>
-        /// Combined movement speed multiplier of every active effect, stack by stack. This is
-        /// the read side of the modifier lifecycle: movement owners multiply their own speed
-        /// by this instead of each effect reaching into movement code.
-        /// </summary>
+
+
+
+
+
         public float MoveSpeedMultiplier
         {
             get
@@ -50,8 +50,8 @@ namespace TacticalEcho.Combat.StatusEffects
 
         private void Awake()
         {
-            // Damage-over-time effects (Bleed) flow through whatever IDamageable already owns
-            // this target's HP, so Health stays the single owner of HP mutation.
+
+
             damageable = GetComponent<IDamageable>();
         }
 
@@ -108,11 +108,11 @@ namespace TacticalEcho.Combat.StatusEffects
             EffectsChanged?.Invoke();
         }
 
-        /// <summary>
-        /// Looks up an active effect by <see cref="StatusEffectDefinition.EffectId"/>. Consumers
-        /// such as EnemyBrain use this to read a normalized value (e.g. Suppression) instead of
-        /// hard-coding effect-specific state of their own.
-        /// </summary>
+
+
+
+
+
         public bool HasEffect(string effectId, out StatusEffectInstance instance)
         {
             instance = activeEffects.Find(effect => effect.Definition.EffectId == effectId);
@@ -126,9 +126,9 @@ namespace TacticalEcho.Combat.StatusEffects
                 return;
             }
 
-            // Reuse the shared damage pipeline (DamageInfo -> IDamageable) instead of mutating
-            // Health directly, so Bleed is an extension of the existing pipeline, not a second
-            // damage system living next to it.
+
+
+
             damageable.ApplyDamage(new DamageInfo(amount, transform.position, Vector3.up, gameObject));
         }
     }

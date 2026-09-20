@@ -93,8 +93,8 @@ namespace TacticalEcho.Character.Player
 
             if (isDead)
             {
-                // Input stops at death; gravity does not. Without this the corpse freezes at
-                // whatever height it died at instead of dropping to the ground.
+
+
                 ApplyVerticalMovement();
                 return;
             }
@@ -247,8 +247,8 @@ namespace TacticalEcho.Character.Player
                 desiredDirection.Normalize();
             }
 
-            // Status effects modify movement through their combined multiplier; nothing in
-            // the effect pipeline writes to movement directly.
+
+
             float speed = (IsSprinting ? sprintSpeed : walkSpeed)
                           * (statusEffects != null ? statusEffects.MoveSpeedMultiplier : 1f);
             PlanarVelocity = desiredDirection * speed;
@@ -256,10 +256,10 @@ namespace TacticalEcho.Character.Player
             ApplyVerticalMovement();
         }
 
-        /// <summary>
-        /// Gravity and the actual CharacterController move. Split out so death can keep
-        /// falling with <see cref="PlanarVelocity"/> already zeroed.
-        /// </summary>
+
+
+
+
         private void ApplyVerticalMovement()
         {
             if (characterController.isGrounded && verticalVelocity < 0f)
@@ -321,10 +321,10 @@ namespace TacticalEcho.Character.Player
             }
         }
 
-        /// <summary>
-        /// Input only selects a slot. EquipmentController decides whether the slot can be
-        /// brought into hand and what that means for the weapon.
-        /// </summary>
+
+
+
+
         private void UpdateEquipment()
         {
             if (equipment == null)

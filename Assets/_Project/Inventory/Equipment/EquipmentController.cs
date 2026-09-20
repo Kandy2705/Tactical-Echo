@@ -11,12 +11,12 @@ namespace TacticalEcho.Inventory.Equipment
         SecondaryWeapon
     }
 
-    /// <summary>
-    /// Owns the primary/secondary weapon slots and which of them is currently in hand.
-    /// Equipping decides which <see cref="WeaponDefinition"/> the character's
-    /// <see cref="WeaponController"/> fires; the weapon controller still owns firing, ammo
-    /// and reload behaviour itself, so this type never touches ballistics.
-    /// </summary>
+
+
+
+
+
+
     public sealed class EquipmentController : MonoBehaviour
     {
         [Header("Starting Loadout")]
@@ -29,9 +29,9 @@ namespace TacticalEcho.Inventory.Equipment
         [SerializeField] private InventoryController inventory;
         [SerializeField] private WeaponController weapon;
 
-        // Runtime only, deliberately not serialized: Unity never deserializes a custom
-        // [Serializable] class as null, so a serialized slot would always look occupied and
-        // an empty slot could be switched to. The authored loadout above is the data.
+
+
+
         private ItemInstance primaryWeapon;
         private ItemInstance secondaryWeapon;
 
@@ -87,10 +87,10 @@ namespace TacticalEcho.Inventory.Equipment
             }
         }
 
-        /// <summary>
-        /// Brings the given slot into hand. Refuses an empty slot so a character can never
-        /// end up holding nothing because of a stray input.
-        /// </summary>
+
+
+
+
         public bool TrySetActiveSlot(EquipmentSlot slot)
         {
             if (slot == ActiveSlot || !HasItem(slot))

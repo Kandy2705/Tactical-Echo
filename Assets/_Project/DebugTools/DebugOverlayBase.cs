@@ -5,11 +5,11 @@ using UnityEngine.UI;
 
 namespace TacticalEcho.DebugTools
 {
-    /// <summary>
-    /// Shared shape for every debug overlay: an optional authored TMP target, a screen-space
-    /// text built on demand when none is assigned, and one text rebuild per frame.
-    /// Overlays observe runtime systems; nothing in gameplay may depend on them.
-    /// </summary>
+
+
+
+
+
     public abstract class DebugOverlayBase : MonoBehaviour
     {
         [Header("Debug Output")]
@@ -28,10 +28,10 @@ namespace TacticalEcho.DebugTools
         private readonly StringBuilder builder = new();
         private float refreshTimer;
 
-        /// <summary>Name used for the generated canvas, and as the overlay's heading.</summary>
+
         protected abstract string OverlayName { get; }
 
-        /// <summary>Append the current frame's debug text. Read-only with respect to gameplay.</summary>
+
         protected abstract void BuildText(StringBuilder text);
 
         protected virtual void Awake()
@@ -58,7 +58,7 @@ namespace TacticalEcho.DebugTools
             builder.Append("== ").Append(OverlayName).AppendLine(" ==");
             BuildText(builder);
 
-            // Only pay for the string and the TMP re-mesh when the content actually moved.
+
             if (!MatchesCurrentText())
             {
                 outputText.text = builder.ToString();

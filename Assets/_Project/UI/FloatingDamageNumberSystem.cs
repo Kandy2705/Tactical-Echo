@@ -136,10 +136,10 @@ namespace TacticalEcho.UI
                 return;
             }
 
-            // TMP materials can keep their own white Face Color, so changing only
-            // TMP_Text.color is not always enough. Set both the material face tint
-            // and the vertex tint explicitly; alpha remains on the vertex tint so
-            // the number can still fade without mutating the shared font asset.
+
+
+
+
             Color32 face = faceColor;
             face.a = 255;
             text.faceColor = face;

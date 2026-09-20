@@ -4,10 +4,10 @@ using UnityEngine;
 
 namespace TacticalEcho.DebugTools
 {
-    /// <summary>
-    /// Read-only view of a WeaponController's runtime: ammo, reload timing and the spread
-    /// cone that actually drives the shot direction.
-    /// </summary>
+
+
+
+
     public sealed class WeaponDebugOverlay : DebugOverlayBase
     {
         [Header("Observed")]

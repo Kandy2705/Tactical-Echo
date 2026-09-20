@@ -7,10 +7,10 @@ using UnityEngine;
 
 namespace TacticalEcho.AI.Debugging
 {
-    /// <summary>
-    /// Read-only presentation for the sandbox AI demo.
-    /// The view observes the authored enemy and never controls its AI or movement.
-    /// </summary>
+
+
+
+
     public sealed class EnemyPerceptionDemoView : MonoBehaviour
     {
         [SerializeField, HideInInspector] private bool hasAuthoringContract;
