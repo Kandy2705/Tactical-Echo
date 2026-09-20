@@ -3455,7 +3455,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TacticalEcho.AI.Navigation.EnemyMovement
   stoppingTolerance: 0.25
-  navMeshSnapDistance: 2
+  navMeshSnapDistance: 4
   navMeshSnapVerticalTolerance: 1
   rotationSharpness: 12
   animationController: {fileID: 7287571676250486688}

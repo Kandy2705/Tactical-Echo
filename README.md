@@ -9,7 +9,9 @@ responsibility and the seams between them are visible and testable.
 
 Full detail: [`Docs/ARCHITECTURE.md`](Docs/ARCHITECTURE.md) for the rules,
 [`Docs/CODEBASE_MAP.md`](Docs/CODEBASE_MAP.md) for who owns what and where to extend,
-[`Docs/PERFORMANCE.md`](Docs/PERFORMANCE.md) for the query/allocation audit and the Profiler method.
+[`Docs/PERFORMANCE.md`](Docs/PERFORMANCE.md) for the query/allocation audit and the Profiler method,
+and [`Docs/CLASS_DIAGRAMS.md`](Docs/CLASS_DIAGRAMS.md) for five UML class diagrams (one per
+domain plus a domain-level overview).
 
 ## Running the demo
 

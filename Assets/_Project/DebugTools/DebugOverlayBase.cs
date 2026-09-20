@@ -5,11 +5,6 @@ using UnityEngine.UI;
 
 namespace TacticalEcho.DebugTools
 {
-
-
-
-
-
     // Shared shape for every debug overlay: an authored TMP_Text target, or a screen-space canvas/text this
     // builds for itself when none is assigned (so any overlay works on a bare GameObject with just the
     // component attached). Rebuilds text on refreshInterval, not every frame, and skips the TMP text

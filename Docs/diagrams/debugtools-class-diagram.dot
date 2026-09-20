@@ -1,0 +1,27 @@
+digraph debugtools_class_diagram {
+  rankdir=TB;
+  bgcolor="white";
+  fontname="Helvetica";
+  splines=ortho;
+  concentrate=false;
+  node [fontname="Helvetica", fontsize=11];
+  edge [fontname="Helvetica", fontsize=10];
+  nodesep=0.9; ranksep=1.1;
+  "DebugOverlayBase" [shape=plain, label=<<table border="1" color="#2b6cb0" cellborder="0" cellspacing="0" bgcolor="white"><tr><td bgcolor="#eaf2fb" align="center" cellpadding="6">&laquo;abstract, MonoBehaviour - Template Method&raquo;<br/><b>DebugOverlayBase</b></td></tr><tr><td align="left" cellpadding="5"># OverlayName : string  {abstract}<br align="left"/># BuildText(StringBuilder)  {abstract}<br align="left"/>- LateUpdate()  // calls OverlayName + BuildText() every frame,<br align="left"/>  // draws to GUI.Label - subclasses never override this<br align="left"/></td></tr></table>>];
+  "AIDebugOverlay" [shape=plain, label=<<table border="1" color="#2b6cb0" cellborder="0" cellspacing="0" bgcolor="white"><tr><td bgcolor="#eaf2fb" align="center" cellpadding="6">&laquo;sealed&raquo;<br/><b>AIDebugOverlay</b></td></tr><tr><td align="left" cellpadding="5">+ Observe(EnemyBrain)<br align="left"/></td></tr></table>>];
+  "SaveDebugOverlay" [shape=plain, label=<<table border="1" color="#2b6cb0" cellborder="0" cellspacing="0" bgcolor="white"><tr><td bgcolor="#eaf2fb" align="center" cellpadding="6">&laquo;sealed&raquo;<br/><b>SaveDebugOverlay</b></td></tr><tr><td align="left" cellpadding="5">+ Observe(SaveManager)<br align="left"/></td></tr></table>>];
+  "StatusEffectDebugOverlay" [shape=plain, label=<<table border="1" color="#2b6cb0" cellborder="0" cellspacing="0" bgcolor="white"><tr><td bgcolor="#eaf2fb" align="center" cellpadding="6">&laquo;sealed&raquo;<br/><b>StatusEffectDebugOverlay</b></td></tr><tr><td align="left" cellpadding="5">+ Observe(StatusEffectController)<br align="left"/></td></tr></table>>];
+  "WeaponDebugOverlay" [shape=plain, label=<<table border="1" color="#2b6cb0" cellborder="0" cellspacing="0" bgcolor="white"><tr><td bgcolor="#eaf2fb" align="center" cellpadding="6">&laquo;sealed&raquo;<br/><b>WeaponDebugOverlay</b></td></tr><tr><td align="left" cellpadding="5">+ Observe(WeaponController)<br align="left"/></td></tr></table>>];
+  "EnemyBrain" [shape=plain, label=<<table border="1" color="#a0aec0" cellborder="0" cellspacing="0" bgcolor="#f7fafc"><tr><td cellpadding="6">&laquo;external&raquo;<br/><b>EnemyBrain</b><br/><font point-size="10" color="#718096">AI/Brain</font></td></tr></table>>];
+  "SaveManager" [shape=plain, label=<<table border="1" color="#a0aec0" cellborder="0" cellspacing="0" bgcolor="#f7fafc"><tr><td cellpadding="6">&laquo;external&raquo;<br/><b>SaveManager</b><br/><font point-size="10" color="#718096">SaveLoad/Persistence</font></td></tr></table>>];
+  "StatusEffectController" [shape=plain, label=<<table border="1" color="#a0aec0" cellborder="0" cellspacing="0" bgcolor="#f7fafc"><tr><td cellpadding="6">&laquo;external&raquo;<br/><b>StatusEffectController</b><br/><font point-size="10" color="#718096">Combat/StatusEffects</font></td></tr></table>>];
+  "WeaponController" [shape=plain, label=<<table border="1" color="#a0aec0" cellborder="0" cellspacing="0" bgcolor="#f7fafc"><tr><td cellpadding="6">&laquo;external&raquo;<br/><b>WeaponController</b><br/><font point-size="10" color="#718096">Combat/Weapons</font></td></tr></table>>];
+  "AIDebugOverlay" -> "DebugOverlayBase" [dir=back, arrowtail=empty, style=solid, penwidth=1.2, color="#2d3748"];
+  "SaveDebugOverlay" -> "DebugOverlayBase" [dir=back, arrowtail=empty, style=solid, penwidth=1.2, color="#2d3748"];
+  "StatusEffectDebugOverlay" -> "DebugOverlayBase" [dir=back, arrowtail=empty, style=solid, penwidth=1.2, color="#2d3748"];
+  "WeaponDebugOverlay" -> "DebugOverlayBase" [dir=back, arrowtail=empty, style=solid, penwidth=1.2, color="#2d3748"];
+  "AIDebugOverlay" -> "EnemyBrain" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="Observe()", fontsize=10, fontcolor="#4a5568"];
+  "SaveDebugOverlay" -> "SaveManager" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="Observe()", fontsize=10, fontcolor="#4a5568"];
+  "StatusEffectDebugOverlay" -> "StatusEffectController" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="Observe()", fontsize=10, fontcolor="#4a5568"];
+  "WeaponDebugOverlay" -> "WeaponController" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="Observe()", fontsize=10, fontcolor="#4a5568"];
+}

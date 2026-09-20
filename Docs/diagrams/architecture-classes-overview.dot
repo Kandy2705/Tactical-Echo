@@ -1,0 +1,23 @@
+digraph architecture_classes_overview {
+  rankdir=TB;
+  bgcolor="white";
+  fontname="Helvetica";
+  splines=ortho;
+  concentrate=false;
+  node [fontname="Helvetica", fontsize=11];
+  edge [fontname="Helvetica", fontsize=10];
+  nodesep=0.9; ranksep=1.1;
+  "AI" [shape=plain, label=<<table border="1" color="#2b6cb0" cellborder="0" cellspacing="0" bgcolor="white"><tr><td bgcolor="#dbeafe" align="center" cellpadding="6">&laquo;AI/*&raquo;<br/><b>AI</b></td></tr><tr><td align="left" cellpadding="5">Key classes: EnemyBrain, TacticalEvaluator, uses StateMachine<br align="left"/></td></tr></table>>];
+  "Combat" [shape=plain, label=<<table border="1" color="#2b6cb0" cellborder="0" cellspacing="0" bgcolor="white"><tr><td bgcolor="#dbeafe" align="center" cellpadding="6">&laquo;Combat/*&raquo;<br/><b>Combat</b></td></tr><tr><td align="left" cellpadding="5">Key classes: WeaponController, DamageSystem, StatusEffectController, Health<br align="left"/></td></tr></table>>];
+  "Camera & Animation" [shape=plain, label=<<table border="1" color="#2b6cb0" cellborder="0" cellspacing="0" bgcolor="white"><tr><td bgcolor="#dbeafe" align="center" cellpadding="6">&laquo;Camera/*, Animation/*&raquo;<br/><b>Camera &amp; Animation</b></td></tr><tr><td align="left" cellpadding="5">Key classes: PlayerCameraController, EnemyAnimationController, PlayerAnimationController<br align="left"/></td></tr></table>>];
+  "DebugTools" [shape=plain, label=<<table border="1" color="#2b6cb0" cellborder="0" cellspacing="0" bgcolor="white"><tr><td bgcolor="#dbeafe" align="center" cellpadding="6">&laquo;DebugTools/*&raquo;<br/><b>DebugTools</b></td></tr><tr><td align="left" cellpadding="5">Key classes: DebugOverlayBase (Template Method)<br align="left"/></td></tr></table>>];
+  "Core" [shape=plain, label=<<table border="1" color="#2b6cb0" cellborder="0" cellspacing="0" bgcolor="white"><tr><td bgcolor="#e6fffa" align="center" cellpadding="6">&laquo;shared infrastructure, depends on no domain&raquo;<br/><b>Core</b></td></tr><tr><td align="left" cellpadding="5">StateMachine&lt;TStateId&gt;, IState  (Core/StateMachine)<br align="left"/>NoiseEventHub  (Core/Events, pub/sub)<br align="left"/></td></tr></table>>];
+  "AI" -> "Core" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="state machine", fontsize=10, fontcolor="#4a5568"];
+  "Combat" -> "Core" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="Emit() noise", fontsize=10, fontcolor="#4a5568"];
+  "AI" -> "Core" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="listens via NoiseEventHub", fontsize=10, fontcolor="#4a5568"];
+  "AI" -> "Combat" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="Weapon, Health, StatusEffects", fontsize=10, fontcolor="#4a5568"];
+  "AI" -> "Camera & Animation" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="EnemyAnimationController", fontsize=10, fontcolor="#4a5568"];
+  "Camera & Animation" -> "Combat" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="WeaponGripPoints, IDamageable", fontsize=10, fontcolor="#4a5568"];
+  "DebugTools" -> "AI" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="read-only (Observe)", fontsize=10, fontcolor="#4a5568"];
+  "DebugTools" -> "Combat" [dir=forward, arrowhead=vee, style=dashed, penwidth=1.0, color="#718096", xlabel="read-only (Observe)", fontsize=10, fontcolor="#4a5568"];
+}
