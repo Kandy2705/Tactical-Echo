@@ -1,7 +1,6 @@
 # Tactical Echo
 
-Tactical Echo is a 3D third-person shooter technical showcase built for the Kong Studios Round 2
-review. It prioritises technical depth, clear ownership boundaries, debugging visibility and
+It prioritises technical depth, clear ownership boundaries, debugging visibility and
 maintainable code over visual polish. Every system below is built so that one class owns one
 responsibility and the seams between them are visible and testable.
 
@@ -9,7 +8,6 @@ responsibility and the seams between them are visible and testable.
 
 Full detail: [`Docs/ARCHITECTURE.md`](Docs/ARCHITECTURE.md) for the rules,
 [`Docs/CODEBASE_MAP.md`](Docs/CODEBASE_MAP.md) for who owns what and where to extend,
-[`Docs/PERFORMANCE.md`](Docs/PERFORMANCE.md) for the query/allocation audit and the Profiler method,
 and [`Docs/CLASS_DIAGRAMS.md`](Docs/CLASS_DIAGRAMS.md) for five UML class diagrams (one per
 domain plus a domain-level overview).
 
@@ -25,12 +23,7 @@ Click the thumbnail above to watch on YouTube.
 2. Open `Assets/_Project/Scenes/TacticalEcho_Sandbox.unity`.
 3. Press Play. `Enemy_01` wires its own vision target (the player, resolved by the `Player` tag
    in `EnemyBrain.Awake`) and its own cover list (every `CoverPoint` in the scene, resolved in
-   `CoverEvaluator.Awake`). If the scene has no baked NavMesh yet, `EnemyMovement.Awake` bakes a
-   runtime one around itself so the enemy can still path; baking a real NavMesh
-   (`Window > AI > Navigation`) is faster and should replace that fallback once the scene's
-   geometry is settled. `Enemy_PerceptionTest_Kaia`'s prefab and scene placement are authored by
-   hand now - the editor tool that used to regenerate them (`EnemyPerceptionDemoBootstrap`) has
-   been removed; add or rewire enemies directly on the prefab/scene going forward.
+   `CoverEvaluator.Awake`).
 
 ### Controls
 
@@ -43,10 +36,9 @@ Click the thumbnail above to watch on YouTube.
 | Right mouse | Aim (toggle by default, hold if an Aim action is bound) |
 | `R` | Reload |
 | `Q` | Switch camera shoulder |
-| `1` / `2` | Primary / secondary weapon |
 | `F5` / `F9` | Save / load — only when a `SaveDebugOverlay` is in the scene |
 
-Keyboard bindings are fallbacks. Any action with an `InputActionReference` assigned on
+Any action with an `InputActionReference` assigned on
 `PlayerInputReader` uses that instead.
 
 ### Seeing the systems work
@@ -98,33 +90,14 @@ owns the primary/secondary slots and pushes the active slot's weapon into the sh
 ordered migration steps, and validation that rejects structurally broken saves so they fall
 through to the backup.
 
-**Performance** — a shared `TickScheduler` budget that AI perception runs on, allocation-free
-physics queries throughout, and a documented audit in `Docs/PERFORMANCE.md`.
-
-## Known gaps
-
-Stated plainly rather than implied:
-
-- **Profiler baseline and after-optimization numbers are not captured yet.** The method and the
-  tables are in `Docs/PERFORMANCE.md`; the numbers require a Profiler run.
-- **Save restore orchestration** — participants are registered and saves are versioned,
-  migrated and validated, but matching records back to participants by `StableId` on load is not
-  wired yet.
-- **PrimeTween is not actually installed.** Only its Editor installer is present under
-  `Assets/Plugins/PrimeTween`; presentation smoothing currently uses the project's manual
-  exponential-blend convention and should move to PrimeTween once the runtime package is added.
-- **Occlusion culling is deliberately off.** Enabling it made frame time less consistent in
-  this scene - the hitch scales with how many buildings change visibility at once. The
-  measurement, the mechanism and the levers if it is revisited are in `Docs/PERFORMANCE.md`.
-- **Obstruction fade needs transparent-capable materials.** An Opaque URP material ignores alpha
-  by design, so the fade is invisible on obstructing geometry until its Surface Type is
-  Transparent/Fade.
+**Performance** — a shared `TickScheduler` budget that AI perception runs on, and allocation-free
+physics queries throughout.
 
 ## Technology
 
 - Unity 6000.3.11f1, Universal Render Pipeline 17.3.0
 - Input System 1.19.0, AI Navigation 2.0.11
-- TextMeshPro for all text UI — no legacy `UnityEngine.UI.Text`
+- TextMeshPro for all text UI
 
 ## Layout
 
@@ -151,7 +124,4 @@ Assets/_Project/
 ## Working on this project
 
 `Docs/CODEBASE_MAP.md` lists, for every file, what it owns, what to extend there and what to keep
-out. Before adding a class, find the owner of that responsibility in the map and extend it. A new
-manager, controller, system or helper is justified only when the responsibility is genuinely new,
-has its own runtime state and lifecycle, or needs a reusable boundary. Any change that moves
-ownership updates the architecture docs in the same commit.
+out. Before adding a class, find the owner of that responsibility in the map and extend it.

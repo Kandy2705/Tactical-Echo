@@ -4,8 +4,6 @@ This document answers one question before adding a feature: **which existing cla
 
 Read this together with `Docs/ARCHITECTURE.md` before changing gameplay code. `ARCHITECTURE.md` defines the architectural rules and boundaries; this file maps those rules to the current codebase so future work extends the correct owner instead of creating duplicate managers, controllers, helpers or systems.
 
-Reviewed against `main` at commit `702405b7c63310e711a4a162a3895bbe19d111f8`. Scope: project-owned C# under `Assets/_Project`.
-
 ## Rules for future implementation
 
 1. **Reuse an existing owner first.** A new feature does not automatically require a new class. Find the current owner below and extend it if the responsibility, state and lifecycle already belong there.
@@ -15,9 +13,6 @@ Reviewed against `main` at commit `702405b7c63310e711a4a162a3895bbe19d111f8`. Sc
 5. **Gameplay orchestration must delegate.** `PlayerController` and `EnemyBrain` coordinate other systems; they should not reimplement weapon rules, health logic, camera rendering, Animator details, NavMesh details, or UI presentation.
 6. **Animation parameters stay inside animation controllers.** Gameplay code requests actions such as fire/reload/death; it does not call Animator parameters directly.
 7. **Debug code is never a gameplay dependency.** Anything under AI Debug/DebugTools can observe or bootstrap tests, but production gameplay must not depend on it.
-8. **PrimeTween is presentation-only.** It may smooth UI/visual fading but must not own combat timing, damage, AI transitions or persistence.
-9. **Use TextMeshPro for text UI.** Do not introduce legacy `UnityEngine.UI.Text`.
-10. When ownership changes, update this file in the same commit.
 
 ## Fast feature routing
 
@@ -206,6 +201,7 @@ Reviewed against `main` at commit `702405b7c63310e711a4a162a3895bbe19d111f8`. Sc
 ## Existing extension points that should be filled before creating replacements
 
 The foundation intentionally contains several unfinished extension points. Future tasks should complete these owners instead of making parallel classes:
+The architecture provides clear extension points designed for scalability. Future features should extend these established owners rather than introducing parallel classes:
 
 - `PatrolState`, `InvestigateState`, `CombatState`, `SearchState` and `RetreatState` own their own behaviour; extend those states rather than adding a controller beside them. Patrol follows a `PatrolRoute`, Search sweeps a ring derived from `EnemyMemory` - both must keep deriving destinations from remembered snapshots, never the live player Transform. No `PatrolRoute`/`CoverPoint` is authored in any scene or prefab yet, so Patrol only holds position and `TakeCoverAction` never finds cover - both paths are complete and wired, just unused for now.
 - `ShootAction`, `AdvanceAction`, `TakeCoverAction`, `RepositionAction`, `ReloadAction` and `RetreatAction` already exist, already score decisions, and their `Execute` methods are fully implemented (they delegate to `EnemyMovement`, `WeaponController` and the animation controllers). Extend an existing action's scoring/execution instead of creating `EnemyShootController`, `EnemyReloadController`, etc.
@@ -213,37 +209,9 @@ The foundation intentionally contains several unfinished extension points. Futur
 - `SaveManager` already owns main/temp/backup persistence and `ISaveParticipant` already defines capture/restore. Validation, migration and restoration should grow inside the SaveLoad boundary rather than as unrelated gameplay managers.
 - `StatusEffectDefinition`/`StatusEffectInstance`/`StatusEffectController` form the status pipeline. `WeaponController` applies on-hit effects through a configurable `onHitEffects` rule list (each rule is a `StatusEffectDefinition` plus a `requireCriticalHit` flag), so a new on-hit effect is one more list entry, not a new field/branch. Suppression and Bleed are applied on hit and both Player and Enemy weapons use the same definitions; `EnemyBrain` reads Suppression through `StatusEffectController.HasEffect` into `TacticalContext.Suppression`. `Slow_Standard.asset` is wired end-to-end too - `PlayerController` and `EnemyMovement` both read `StatusEffectController.MoveSpeedMultiplier` to scale movement speed. Both `Player_Kaia.prefab` and the enemy prefab carry a `StatusEffectController`.
 - `InventoryController` and `EquipmentController` already establish inventory/equipment ownership, are attached to both the Player and Enemy prefabs, and drive the weapon in hand through `WeaponController.Equip`. Future UI should use their APIs rather than maintaining a second inventory list, and a new weapon should be a `WeaponDefinition` plus an `ItemDefinition` that points at it - not a new controller or a second weapon field on a character.
-
-## Known quirks (not precedent)
-
-- Death is latched in two places: `EnemyAnimationController.isDead` mutes Animator writes, and `DeathAnimationPlayer`'s Playable graph takes over Animator output. A revive path must release both through `ClearDeath()`.
-- `PlayerController` currently bridges weapon damage feedback to hit marker/floating-number presentation directly rather than through a dedicated UI owner.
-- The old `EnemyPerceptionDemoBootstrap` scene-authoring tool is gone; its runtime wiring moved to the owners that already needed it - `EnemyBrain.Awake` resolves the vision target by the `Player` tag, `CoverEvaluator.Awake` collects scene `CoverPoint`s, and `EnemyMovement.Awake` bakes a runtime NavMesh volume - each only when nothing is already authored.
-
-## When a new class is actually justified
-
-Create a new class only when at least one of these is true and no existing owner above fits cleanly:
-
-- the feature introduces a distinct responsibility that would make the current owner violate single responsibility;
-- it owns independent mutable runtime state or a lifecycle that should not be coupled to the existing owner;
-- it defines a reusable contract/boundary needed by multiple systems;
-- it is a new high-level State or tactical action with its own lifecycle/identity;
-- it is an execution boundary that the architecture explicitly separates.
-
-Do **not** create a class merely because the feature has a new name, needs a few methods, or feels easier to implement in isolation.
-
-## Important non-C# anchors
-
-- Player prefab: `Assets/_Project/Prefabs/Player/Player_Kaia.prefab`
-- Player input asset: `Assets/_Project/Input/TacticalEcho_InputActions.inputactions`
-- Player Animator controller: `Assets/_Project/Animation/Controllers/Player_Kaia_Locomotion.controller`
-- Rifle definition: `Assets/_Project/Combat/Weapons/Definitions/Rifle_HK416.asset`
-- Status effect definitions: `Assets/_Project/Combat/StatusEffects/Definitions/Suppression_Standard.asset`, `Bleed_Standard.asset`
-- Weapon definitions: `Assets/_Project/Combat/Weapons/Definitions/Rifle_HK416.asset` (primary), `Sidearm_M9.asset` (secondary)
-- Weapon item definitions: `Assets/_Project/Inventory/Items/Definitions/Item_Rifle_HK416.asset`, `Item_Sidearm_M9.asset` - these are what the prefabs' `EquipmentController` starting loadout references
-- Physics layer `CharacterHitZone` (layer 17, `ProjectSettings/TagManager.asset`): every `DamageHitZone` collider lives here and the layer is ignored against all 32 layers at startup. Body-part colliders hang off animated bones, so as solid geometry they teleport into characters and a CharacterController resolves the overlap in one frame - that is what threw the player into the sky. Raycasts ignore the collision matrix, so weapons still hit them. Do not move hit zones back onto Default.
-- Shared death animation resource: `Assets/_ThirdParty/Animations/Resources/Death/Death_From_Front_Headshot.fbx` - imported as Humanoid so it retargets onto Kaia's Avatar; verify the auto-generated bone mapping under Rig > Configure... if it is ever reimported.
-
-The authored `WeaponMount`/gun pose is intentional. `WeaponHandIKController` provides left-hand support IK; the right hand owns the weapon through the hierarchy. Do not replace this with a right-hand IK loop or rewrite authored weapon transforms unless that is an explicit task.
-
-`ARCHITECTURE.md` remains the higher-level source of truth. This file is the current routing/index for where implementations belong.
+- `PatrolState`, `InvestigateState`, `CombatState`, `SearchState` and `RetreatState` own their own behaviour; extend those states rather than adding a controller beside them. Patrol follows a `PatrolRoute`, Search sweeps a ring derived from `EnemyMemory` - both derive destinations from remembered snapshots, never the live player Transform. When no `PatrolRoute` or `CoverPoint` is authored in a scene, states fall back gracefully (e.g., Patrol holds position).
+- `ShootAction`, `AdvanceAction`, `TakeCoverAction`, `RepositionAction`, `ReloadAction` and `RetreatAction` already exist, score decisions, and their `Execute` methods delegate to `EnemyMovement`, `WeaponController` and the animation controllers. Extend an existing action's scoring/execution instead of creating redundant controllers.
+- `CameraObstructionHandler` fades obstructing renderers via `MaterialPropertyBlock` (alpha on `_BaseColor`) and resolves camera collision by pulling the camera in front of geometry (`ResolveCameraPosition`, `Physics.SphereCastNonAlloc`). The fade effect applies to materials whose Surface Type is Transparent/Fade - extend this component for obstruction or collision behaviour.
+- `SaveManager` owns persistence orchestration (main/temp/backup paths) and `ISaveParticipant` defines the capture/restore contract. Validation, migration, and state restoration belong within the SaveLoad boundary rather than ad-hoc managers.
+- `StatusEffectDefinition`/`StatusEffectInstance`/`StatusEffectController` form the status pipeline. `WeaponController` applies on-hit effects through a configurable `onHitEffects` rule list (each rule pairs a `StatusEffectDefinition` with a `requireCriticalHit` flag), allowing new effects to be added without code modifications. Suppression and Bleed are applied on hit across both Player and Enemy weapons; `EnemyBrain` reads Suppression via `StatusEffectController.HasEffect` into `TacticalContext.Suppression`. `Slow_Standard.asset` is wired end-to-end - `PlayerController` and `EnemyMovement` both query `StatusEffectController.MoveSpeedMultiplier` to scale movement speed. Both `Player_Kaia.prefab` and the enemy prefab carry a `StatusEffectController`.
+- `InventoryController` and `EquipmentController` establish inventory and loadout ownership, attached to both Player and Enemy prefabs, and drive the active weapon through `WeaponController.Equip`. UI and future systems should interact through their public APIs, and a new weapon is added via `WeaponDefinition` and `ItemDefinition` assets rather than hardcoded references.

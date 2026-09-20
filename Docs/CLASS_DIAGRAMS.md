@@ -1,15 +1,12 @@
 # Class diagrams
 
-Five UML class diagrams, generated straight from the current source under `Assets/_Project/` —
-one per major domain (AI, Combat, Camera & Animation, DebugTools), plus one domain-level overview
-that ties them together. Each `.svg` has its `.dot` source next to it in this folder; regenerate
-after a structural change with `dot -Tsvg <name>.dot -o <name>.svg` (Graphviz).
+Each diagram corresponds to one major domain (AI, Combat, Camera & Animation, DebugTools).
 
 ## Overview — how the four domains connect
 
 ![Domain overview](diagrams/architecture-classes-overview.svg)
 
-No methods here on purpose — this is the "which domain is allowed to depend on which" map.
+This is the "which domain is allowed to depend on which" map.
 `Core/` (the state machine engine and the event hub) is the only thing every domain may depend
 on; `AI` depends on `Combat` and `Camera & Animation` for execution (movement, weapon, animation)
 but never the other way around; `DebugTools` only ever reads.

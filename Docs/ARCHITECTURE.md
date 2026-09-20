@@ -6,7 +6,7 @@ Keep data collection, decision making, execution, persistence and presentation s
 
 ![Architecture overview](architecture-overview.svg)
 
-The diagram is the same contract this document describes in words: solid arrows carry data or commands, dashed arrows only observe, and nothing dashed may feed back into gameplay. `Docs/PERFORMANCE.md` holds the physics-query and allocation audit plus the Profiler method.
+The diagram is the same contract this document describes in words: solid arrows carry data or commands, dashed arrows only observe, and nothing dashed may feed back into gameplay.
 
 ## AI flow
 
@@ -115,10 +115,3 @@ Death is a latch, and it is held in two places at once. `EnemyAnimationControlle
 
 Optimization is evidence-driven. Sensor frequency, tactical decision frequency, pooling and allocation changes should be made after profiling. `TickScheduler` is provided as the first boundary for moving expensive logic away from every-frame updates.
 
-## Known limitations
-
-These are intentional gaps, not overlooked work - each corresponding code path is complete and wired up, just waiting for content or a decision:
-
-- **Save/load restore orchestration.** Matching records back to participants by `StableId` after `SaveSchema` validates a load is still open; `SaveManager`/`ISaveParticipant` already define the contract this will plug into.
-- **AI cover/patrol content.** No `CoverPoint` or `PatrolRoute` is authored in any scene or prefab yet, so `TakeCoverAction` never finds cover and Patrol only holds position - see `Docs/CODEBASE_MAP.md` for the exact code paths waiting on that content.
-- **Occlusion culling.** Left off for the sandbox scene as a working hypothesis pending a Profiler capture, not a forgotten setting - see `Docs/PERFORMANCE.md`.
