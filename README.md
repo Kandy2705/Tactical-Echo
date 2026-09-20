@@ -15,10 +15,9 @@ domain plus a domain-level overview).
 
 ## Demo video
 
-<video src="Docs/media/demo.mov" controls width="720">
-  Your browser does not support inline video playback - download it directly from
-  <a href="Docs/media/demo.mov">Docs/media/demo.mov</a>.
-</video>
+[![Tactical Echo demo](https://img.youtube.com/vi/yGiI6YhgFA4/hqdefault.jpg)](https://youtu.be/yGiI6YhgFA4)
+
+Click the thumbnail above to watch on YouTube.
 
 ## Running the demo
 
