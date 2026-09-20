@@ -13,6 +13,13 @@ Full detail: [`Docs/ARCHITECTURE.md`](Docs/ARCHITECTURE.md) for the rules,
 and [`Docs/CLASS_DIAGRAMS.md`](Docs/CLASS_DIAGRAMS.md) for five UML class diagrams (one per
 domain plus a domain-level overview).
 
+## Demo video
+
+<video src="Docs/media/demo.mov" controls width="720">
+  Your browser does not support inline video playback - download it directly from
+  <a href="Docs/media/demo.mov">Docs/media/demo.mov</a>.
+</video>
+
 ## Running the demo
 
 1. Open the project in **Unity 6000.3.11f1**.
