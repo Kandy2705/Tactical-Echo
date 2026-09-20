@@ -62,9 +62,9 @@
   <path class="edge" d="M220,157 L259,157"/>
   <path class="edge" d="M445,157 L484,157"/>
   <path class="edge" d="M925,157 L969,157"/>
-  <path class="edgeSoft" d="M135,190 C135,228 830,228 830,196"/>
-  <path class="edgeSoft" d="M355,190 C355,248 830,248 830,196"/>
-  <path class="edgeSoft" d="M355,124 C355,96 1300,96 1300,106"/>
+  <path class="edgeSoft" d="M135,190 V218 H790 V196"/>
+  <path class="edgeSoft" d="M355,190 V240 H870 V196"/>
+  <path class="edgeSoft" d="M355,124 V94 H1300 V106"/>
 
   <rect class="band" x="32" y="302" width="1376" height="238" rx="16"/>
   <text class="bandTitle" x="50" y="328">COMBAT + STATUS</text>
@@ -106,12 +106,12 @@
   <rect class="node system" x="500" y="458" width="170" height="56" rx="9"/>
   <text class="nodeTitle" x="585" y="482" text-anchor="middle">NoiseEventHub</text>
   <text class="nodeText" x="585" y="501" text-anchor="middle">Shot noise</text>
-  <path class="edgeSoft" d="M145,426 C145,486 460,486 494,486"/>
+  <path class="edgeSoft" d="M145,426 V442 H470 V486 H494"/>
 
-  <path class="edgeSoft" d="M240,410 C360,450 810,450 924,410"/>
-  <path class="edgeSoft" d="M1032,426 C1032,508 805,508 805,432"/>
-  <path class="edgeSoft" d="M585,190 C585,290 145,290 145,348"/>
-  <path class="edgeSoft" d="M355,190 C355,278 115,278 115,348"/>
+  <path class="edgeSoft" d="M240,410 V446 H900 V410 H924"/>
+  <path class="edgeSoft" d="M1032,426 V530 H882 V446 H782.5 V432"/>
+  <path class="edgeSoft" d="M585,190 V286 H40 V405 H44"/>
+  <path class="edgeSoft" d="M355,190 V294 H252 V390 H246"/>
 
   <rect class="band" x="32" y="564" width="1376" height="374" rx="16"/>
   <text class="bandTitle" x="50" y="590">ENEMY AI</text>
@@ -161,13 +161,13 @@
   <rect class="node ai" x="470" y="736" width="215" height="60" rx="10"/>
   <text class="nodeTitle" x="577.5" y="761" text-anchor="middle">Other States</text>
   <text class="nodeText" x="577.5" y="781" text-anchor="middle">Patrol · Investigate · Search</text>
-  <path class="edgeSoft" d="M744,696 C700,720 645,724 620,730"/>
-  <path class="edgeSoft" d="M685,766 C780,836 900,875 994,875"/>
+  <path class="edgeSoft" d="M744,696 V714 H577.5 V730"/>
+  <path class="edgeSoft" d="M685,766 V820 H960 V875 H994"/>
 
   <rect class="node data" x="50" y="736" width="175" height="56" rx="9"/>
   <text class="nodeTitle" x="137.5" y="760" text-anchor="middle">PatrolRoute</text>
   <text class="nodeText" x="137.5" y="779" text-anchor="middle">Waypoints</text>
-  <path class="edgeSoft" d="M225,764 C320,764 395,764 464,764"/>
+  <path class="edgeSoft" d="M225,764 H464"/>
 
   <rect class="node data" x="50" y="824" width="175" height="56" rx="9"/>
   <text class="nodeTitle" x="137.5" y="848" text-anchor="middle">CoverPoint</text>
@@ -177,21 +177,21 @@
   <text class="nodeTitle" x="352.5" y="848" text-anchor="middle">CoverEvaluator</text>
   <text class="nodeText" x="352.5" y="867" text-anchor="middle">Select cover</text>
   <path class="edge" d="M225,852 L259,852"/>
-  <path class="edgeSoft" d="M440,852 C520,830 548,742 548,700"/>
+  <path class="edgeSoft" d="M440,852 H452 V706 H548 V692"/>
 
   <rect class="node system" x="265" y="896" width="270" height="34" rx="9"/>
   <text class="nodeTitle" x="400" y="918" text-anchor="middle">TickScheduler</text>
-  <path class="edgeSoft" d="M265,913 C165,913 132,780 132,692"/>
+  <path class="edgeSoft" d="M265,913 H235 V706 H132.5 V692"/>
 
-  <path class="edgeSoft" d="M585,514 C585,560 132,560 132,608"/>
-  <path class="edgeSoft" d="M1032,426 C1032,566 612,566 612,608"/>
+  <path class="edgeSoft" d="M585,514 V548 H115 V608"/>
+  <path class="edgeSoft" d="M1032,426 V446 H1160 V596 H548 V608"/>
 
   <rect class="band" x="32" y="962" width="1376" height="116" rx="16"/>
   <text class="bandTitle" x="50" y="988">DEBUG</text>
   <rect class="node system" x="50" y="1006" width="1335" height="50" rx="9"/>
   <text class="nodeTitle" x="717.5" y="1028" text-anchor="middle">DebugOverlayBase · AI · Weapon · Status · Save · EnemyAIGizmos</text>
   <text class="nodeText" x="717.5" y="1047" text-anchor="middle">Diagnostics only</text>
-  <path class="observe" d="M330,1006 C330,966 337,730 337,692"/>
-  <path class="observe" d="M720,1006 C720,950 780,915 782,702"/>
-  <path class="observe" d="M1110,1006 C1110,950 1032,915 1032,432"/>
+  <path class="observe" d="M330,1006 V948 H240 V706 H337.5 V692"/>
+  <path class="observe" d="M720,1006 V948 H905 V714 H782.5 V702"/>
+  <path class="observe" d="M1350,1006 V948 H1392 V446 H1100 V432"/>
 </svg>
