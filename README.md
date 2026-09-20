@@ -15,7 +15,7 @@ domain plus a domain-level overview).
 
 ## Demo video
 
-[![Tactical Echo demo](https://img.youtube.com/vi/yGiI6YhgFA4/hqdefault.jpg)](https://youtu.be/yGiI6YhgFA4)
+[![Tactical Echo demo](https://img.youtube.com/vi/VHTSJ0SswnM/hqdefault.jpg)](https://youtu.be/VHTSJ0SswnM)
 
 Click the thumbnail above to watch on YouTube.
 
