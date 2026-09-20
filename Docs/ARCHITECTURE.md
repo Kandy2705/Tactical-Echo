@@ -85,7 +85,7 @@ Load
  -> restore by StableId
 ```
 
-`SaveSchema` owns the version number this build writes, what a valid save may contain, and how an older one is brought up to date; `SaveManager` owns the files and the participants and asks `SaveSchema` whether parsed data may be trusted. A load reads, rejects anything written by a newer build, walks one migration step per version until the data reaches the current schema, then validates it - records present, every record carrying a non-blank and unique `stableId`, a representable timestamp. Only data that passes all three is handed back, so a file that parses but is structurally broken falls through to the backup instead of reaching participants. Migration steps are keyed by the version they upgrade *from* and always produce that version plus one: adding a schema field means adding the step that fills it in for older saves, never special-casing a version at the call site. Restore orchestration - matching records back to participants by `StableId` - is still open.
+`SaveSchema` owns the version number this build writes, what a valid save may contain, and how an older one is brought up to date; `SaveManager` owns the files and the participants and asks `SaveSchema` whether parsed data may be trusted. A load reads, rejects anything written by a newer build, walks one migration step per version until the data reaches the current schema, then validates it - records present, every record carrying a non-blank and unique `stableId`, a representable timestamp. Only data that passes all three is handed back, so a file that parses but is structurally broken falls through to the backup instead of reaching participants. Migration steps are keyed by the version they upgrade *from* and always produce that version plus one: adding a schema field means adding the step that fills it in for older saves, never special-casing a version at the call site.
 
 ## Camera and animation
 
@@ -97,7 +97,7 @@ Text UI uses TextMeshPro (`TMP_Text`/`TextMeshProUGUI`), not legacy `UnityEngine
 
 ## Debugging
 
-Every overlay derives from `DebugOverlayBase`, which owns the shared shape: an optional authored TextMeshPro target, a screen-space text the overlay builds for itself when none is assigned, and one text rebuild per frame. `AIDebugOverlay` shows state, tactical action scores and memory; `WeaponDebugOverlay` shows ammo, reload timing and the spread cone that actually drives shot direction; `StatusEffectDebugOverlay` shows active effects with stacks, remaining duration and the damage-over-time tick; `SaveDebugOverlay` shows what is on disk plus the result of the last versioned/validated read. Scene gizmos visualize perception and remembered positions. Debug code observes runtime systems and never becomes a gameplay dependency - the save and load keys on `SaveDebugOverlay` are a harness for exercising the save pipeline, not something gameplay reads.
+Every overlay derives from `DebugOverlayBase`, which owns the shared shape: an optional authored TextMeshPro target, a screen-space text the overlay builds for itself when none is assigned, and a rebuild throttled to a configurable interval (default 0.1s) rather than every frame. `AIDebugOverlay` shows state, tactical action scores and memory; `WeaponDebugOverlay` shows ammo, reload timing and the spread cone that actually drives shot direction; `StatusEffectDebugOverlay` shows active effects with stacks, remaining duration and the damage-over-time tick; `SaveDebugOverlay` shows what is on disk plus the result of the last versioned/validated read. Scene gizmos visualize perception and remembered positions. Debug code observes runtime systems and never becomes a gameplay dependency - the save and load keys on `SaveDebugOverlay` are a harness for exercising the save pipeline, not something gameplay reads.
 
 ## Character physics
 
@@ -114,3 +114,11 @@ Death is a latch, and it is held in two places at once. `EnemyAnimationControlle
 `TickScheduler` is the shared low-frequency budget and is now actually used: `EnemyBrain` registers its perception step (sensors, memory decay, perception-driven transitions) with it, so the cost of AI thinking is one interval for the whole scene rather than a timer per component. The state machine deliberately stays per frame - it is cheap and it drives facing and destination updates, which visibly snap at 10 Hz. `VisionSensor` keeps its own scan interval on top; the scheduler is the global budget, the sensor interval is that one sensor's rate.
 
 Optimization is evidence-driven. Sensor frequency, tactical decision frequency, pooling and allocation changes should be made after profiling. `TickScheduler` is provided as the first boundary for moving expensive logic away from every-frame updates.
+
+## Known limitations
+
+These are intentional gaps, not overlooked work - each corresponding code path is complete and wired up, just waiting for content or a decision:
+
+- **Save/load restore orchestration.** Matching records back to participants by `StableId` after `SaveSchema` validates a load is still open; `SaveManager`/`ISaveParticipant` already define the contract this will plug into.
+- **AI cover/patrol content.** No `CoverPoint` or `PatrolRoute` is authored in any scene or prefab yet, so `TakeCoverAction` never finds cover and Patrol only holds position - see `Docs/CODEBASE_MAP.md` for the exact code paths waiting on that content.
+- **Occlusion culling.** Left off for the sandbox scene as a working hypothesis pending a Profiler capture, not a forgotten setting - see `Docs/PERFORMANCE.md`.

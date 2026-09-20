@@ -24,8 +24,11 @@ Capture with the same scene, the same route and the same duration every time:
 5. For a build capture, use a Development Build with Autoconnect Profiler; Editor numbers are
    indicative only and are always worse than a build.
 
-Record the machine: this project has been developed on an Apple M4 with the Metal backend,
-where the sandbox scene has been observed at roughly 52-56 FPS in the Editor Game view.
+Record the machine: this project has been developed on an Apple M4 with the Metal backend.
+Informal Editor Game-view readings during development have ranged roughly 52-74 FPS in the
+sandbox scene depending on view and occlusion-culling state; none of this is a Profiler
+capture (see Status above), and none of it should be quoted as a result until the tables
+below are filled in.
 
 ## Physics query audit
 
@@ -109,11 +112,13 @@ Window > Rendering > Occlusion Culling > Bake. Measure before and after with the
 in an outdoor seaside scene the win is usually small, so it belongs in the Profiler tables
 rather than being assumed.
 
-## Finding: occlusion culling is off in this scene, on purpose
+## Working hypothesis: occlusion culling stays off in this scene, pending confirmation
 
-Measured, not assumed. With occlusion culling disabled the sandbox runs smoothly; with it
-enabled the frame hitches, and the size of the hitch scales with how many buildings change
-visibility at once. That is the whole signal needed to make the call.
+Observed, not yet Profiler-measured. In Editor Game-view sessions, the sandbox runs smoothly
+with occlusion culling disabled; enabling it introduces visible hitching, and the hitch size
+tracks how many buildings change visibility at once. That is the signal behind the
+hypothesis below - it still needs a Profiler capture (see "To confirm this" further down)
+before it counts as a result under this document's own standard.
 
 **Why it behaves that way.** Occlusion culling does not make rendering cheaper for free - it
 changes *when* the work happens. With it off, the visible set is large and stable, so the cost
@@ -139,11 +144,12 @@ to the camera pass plus up to four shadow cascade passes in the same frame.
 - The camera obstruction fade - the hitch reproduces with occlusion culling as the only
   variable, and disappears when it alone is switched off.
 
-**Decision: leave occlusion culling off for the sandbox.** The scene already runs at ~74 FPS
-without it on an Apple M4, occlusion culling's win is small in an open outdoor scene with few
-complete occluders, and it costs frame consistency, which is the thing a player actually feels.
-This is an evidence-based decision to *not* apply an optimization, which is the same standard as
-applying one.
+**Working call: leave occlusion culling off for the sandbox, pending a Profiler capture.**
+Game-view sessions put the scene comfortably above 70 FPS without it on an Apple M4,
+occlusion culling's expected win is small in an open outdoor scene with few complete
+occluders, and the hitching it introduces costs frame consistency, which is the thing a
+player actually feels. Treat this as the leading hypothesis, not a closed decision - promote
+it to a decision once the Profiler tables below are filled in for both settings.
 
 **If it is enabled later**, these are the levers, in order:
 
@@ -153,7 +159,7 @@ applying one.
    the per-reveal shadow work; MSAA 4x to 2x removes the rest.
 3. Re-measure. A lever that does not move the Profiler number does not go in.
 
-**To settle it definitively**, capture the spike frame in the Profiler and read which marker
+**To confirm this**, capture the spike frame in the Profiler and read which marker
 dominates it: `Culling` means the visibility query itself, `Shadows.DrawShadows` means the
 cascade submission, `RenderLoop.Draw` means draw-list setup, and `Shader.CreateGPUProgram`
 would mean this was pipeline-state compilation after all rather than culling.

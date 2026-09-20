@@ -4,7 +4,7 @@ This document answers one question before adding a feature: **which existing cla
 
 Read this together with `Docs/ARCHITECTURE.md` before changing gameplay code. `ARCHITECTURE.md` defines the architectural rules and boundaries; this file maps those rules to the current codebase so future work extends the correct owner instead of creating duplicate managers, controllers, helpers or systems.
 
-Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Scope: project-owned C# under `Assets/_Project`.
+Reviewed against `main` at commit `702405b7c63310e711a4a162a3895bbe19d111f8`. Scope: project-owned C# under `Assets/_Project`.
 
 ## Rules for future implementation
 
@@ -165,7 +165,7 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 
 | File | Owns | Extend here when | Keep out |
 | --- | --- | --- | --- |
-| `DebugTools/DebugOverlayBase.cs` | Shared overlay shape: TMP target or self-built screen text, per-frame rebuild | Behaviour common to every debug overlay | Anything specific to one observed system |
+| `DebugTools/DebugOverlayBase.cs` | Shared overlay shape: TMP target or self-built screen text, throttled rebuild (`refreshInterval`, default 0.1s) | Behaviour common to every debug overlay | Anything specific to one observed system |
 | `DebugTools/AIDebugOverlay.cs` | TMP display of AI state, tactical scores and memory | Additional read-only AI debugging information | Any gameplay authority |
 | `DebugTools/WeaponDebugOverlay.cs` | TMP display of weapon runtime: ammo, reload timing, current and effective spread | Additional read-only weapon debugging information | Weapon rules; it must not drive firing |
 | `DebugTools/StatusEffectDebugOverlay.cs` | TMP display of active status effects: stacks, remaining, damage tick | Additional read-only status debugging information | Applying or expiring effects |
@@ -207,22 +207,18 @@ Reviewed against `main` at commit `0c57e4657017d8824b0627c91535e87032ff9f30`. Sc
 
 The foundation intentionally contains several unfinished extension points. Future tasks should complete these owners instead of making parallel classes:
 
-- `PatrolState`, `InvestigateState`, `CombatState`, `SearchState` and `RetreatState` own their own behaviour. Patrol follows a `PatrolRoute` and Search sweeps a ring derived from `EnemyMemory`; extend those states rather than adding a controller beside them. Search and Patrol must keep deriving every destination from remembered snapshots, never from the live player Transform. As of this writing, no `PatrolRoute` or `CoverPoint` instance is authored anywhere in the scene or prefabs, so in practice Patrol only holds position (`EnemyBrain.patrolRoute` is unset) and `TakeCoverAction` never finds cover (`CoverEvaluator`'s scene-wide scan finds nothing) - both code paths are complete and wired up, they just have no content to act on yet.
+- `PatrolState`, `InvestigateState`, `CombatState`, `SearchState` and `RetreatState` own their own behaviour; extend those states rather than adding a controller beside them. Patrol follows a `PatrolRoute`, Search sweeps a ring derived from `EnemyMemory` - both must keep deriving destinations from remembered snapshots, never the live player Transform. No `PatrolRoute`/`CoverPoint` is authored in any scene or prefab yet, so Patrol only holds position and `TakeCoverAction` never finds cover - both paths are complete and wired, just unused for now.
 - `ShootAction`, `AdvanceAction`, `TakeCoverAction`, `RepositionAction`, `ReloadAction` and `RetreatAction` already exist, already score decisions, and their `Execute` methods are fully implemented (they delegate to `EnemyMovement`, `WeaponController` and the animation controllers). Extend an existing action's scoring/execution instead of creating `EnemyShootController`, `EnemyReloadController`, etc.
-- `CameraObstructionHandler` now fades obstructing renderers via `MaterialPropertyBlock` (alpha on `_BaseColor`), not just querying for them. This only has a visible effect on materials whose Surface Type is Transparent/Fade - extend this component (not a new one) once obstructing geometry uses such materials. Camera collision (physically pulling the camera in front of geometry) is still not implemented.
+- `CameraObstructionHandler` fades obstructing renderers via `MaterialPropertyBlock` (alpha on `_BaseColor`) and resolves camera collision by pulling the camera in front of geometry (`ResolveCameraPosition`, `Physics.SphereCastNonAlloc`). The fade only has a visible effect on materials whose Surface Type is Transparent/Fade - extend this component (not a new one) for either behaviour.
 - `SaveManager` already owns main/temp/backup persistence and `ISaveParticipant` already defines capture/restore. Validation, migration and restoration should grow inside the SaveLoad boundary rather than as unrelated gameplay managers.
-- `StatusEffectDefinition`/`StatusEffectInstance`/`StatusEffectController` establish the status pipeline. `WeaponController` applies on-hit effects through a configurable `onHitEffects` rule list (each rule is a `StatusEffectDefinition` plus a `requireCriticalHit` flag) rather than a dedicated field per effect, so a new on-hit effect is one more list entry, not a new field/branch in `WeaponController`. Both prefabs currently list Suppression (every damaging hit) and Bleed (critical hit only), and `EnemyBrain` reads Suppression through `StatusEffectController.HasEffect` into `TacticalContext.Suppression` - both Player and Enemy weapons apply the same definitions, so this is not hard-coded per class. `Bleed_Standard.asset`/`Suppression_Standard.asset` live under `Combat/StatusEffects/Definitions/`. Slow is not implemented yet - feed it through the same pipeline (a definition with a movement-speed modifier read by `EnemyMovement`/`PlayerController`) rather than adding a parallel system. Player currently has no `StatusEffectController` attached, so Bleed only affects Enemy until one is added to `Player_Kaia.prefab`.
+- `StatusEffectDefinition`/`StatusEffectInstance`/`StatusEffectController` form the status pipeline. `WeaponController` applies on-hit effects through a configurable `onHitEffects` rule list (each rule is a `StatusEffectDefinition` plus a `requireCriticalHit` flag), so a new on-hit effect is one more list entry, not a new field/branch. Suppression and Bleed are applied on hit and both Player and Enemy weapons use the same definitions; `EnemyBrain` reads Suppression through `StatusEffectController.HasEffect` into `TacticalContext.Suppression`. `Slow_Standard.asset` is wired end-to-end too - `PlayerController` and `EnemyMovement` both read `StatusEffectController.MoveSpeedMultiplier` to scale movement speed. Both `Player_Kaia.prefab` and the enemy prefab carry a `StatusEffectController`.
 - `InventoryController` and `EquipmentController` already establish inventory/equipment ownership, are attached to both the Player and Enemy prefabs, and drive the weapon in hand through `WeaponController.Equip`. Future UI should use their APIs rather than maintaining a second inventory list, and a new weapon should be a `WeaponDefinition` plus an `ItemDefinition` that points at it - not a new controller or a second weapon field on a character.
 
-## Current ownership drift to avoid copying
+## Known quirks (not precedent)
 
-The codebase is in active development, so this map also records places that should **not become precedent**:
-
-- Death is a latch in two places at once: `EnemyAnimationController.isDead` mutes Animator parameter writes, and `DeathAnimationPlayer`'s Playable graph takes over the Animator's output. Anything that brings a character back (for example `EnemyBrain.ConfigureExecution` recomputing `isDead` from a now-initialized `Health`) must release both via `ClearDeath()`. Do not clear one without the other, and do not add a separate `EnemyDeathController` to work around it.
-- `PlayerController` currently bridges weapon damage feedback to hit marker/floating-number presentation. Do not use that as a reason to keep adding UI rendering responsibilities to PlayerController. Prefer existing UI/camera presentation owners and event-based observation.
-- `EnemyPerceptionDemoBootstrap` (the sandbox prefab/scene auto-authoring tool, its `Rebuild Sandbox Perception Enemy` menu command, and its runtime player/cover/NavMesh wiring) has been removed now that `Enemy_PerceptionTest_Kaia` is authored and stable. The wiring it used to do at runtime is not gone, just relocated to the owner that already needed it: `EnemyBrain.Awake` resolves the vision target by the `Player` tag when `VisionSensor.Target` is null, `CoverEvaluator.Awake` collects every `CoverPoint` in the scene when its list is empty, and `EnemyMovement.Awake` bakes a runtime NavMesh volume around itself when the scene has none baked. Do not resurrect a scene-authoring bootstrap for the enemy prefab; edit `Enemy_PerceptionTest_Kaia.prefab` by hand.
-
-These are targeted cleanup directions, not a request for a broad refactor before the relevant feature is worked on.
+- Death is latched in two places: `EnemyAnimationController.isDead` mutes Animator writes, and `DeathAnimationPlayer`'s Playable graph takes over Animator output. A revive path must release both through `ClearDeath()`.
+- `PlayerController` currently bridges weapon damage feedback to hit marker/floating-number presentation directly rather than through a dedicated UI owner.
+- The old `EnemyPerceptionDemoBootstrap` scene-authoring tool is gone; its runtime wiring moved to the owners that already needed it - `EnemyBrain.Awake` resolves the vision target by the `Player` tag, `CoverEvaluator.Awake` collects scene `CoverPoint`s, and `EnemyMovement.Awake` bakes a runtime NavMesh volume - each only when nothing is already authored.
 
 ## When a new class is actually justified
 
@@ -249,18 +245,5 @@ Do **not** create a class merely because the feature has a new name, needs a few
 - Shared death animation resource: `Assets/_ThirdParty/Animations/Resources/Death/Death_From_Front_Headshot.fbx` - imported as Humanoid so it retargets onto Kaia's Avatar; verify the auto-generated bone mapping under Rig > Configure... if it is ever reimported.
 
 The authored `WeaponMount`/gun pose is intentional. `WeaponHandIKController` provides left-hand support IK; the right hand owns the weapon through the hierarchy. Do not replace this with a right-hand IK loop or rewrite authored weapon transforms unless that is an explicit task.
-
-## Required workflow before future code changes
-
-```text
-1. Fetch latest main.
-2. Read Docs/ARCHITECTURE.md.
-3. Read Docs/CODEBASE_MAP.md.
-4. Read the current files that own the requested feature.
-5. Reuse/extend those owners first.
-6. Add a class only if the new-class gate above is satisfied.
-7. Implement and test the smallest coherent change.
-8. If ownership/architecture changed, update the docs in the same commit.
-```
 
 `ARCHITECTURE.md` remains the higher-level source of truth. This file is the current routing/index for where implementations belong.
